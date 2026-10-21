@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#18392f">
+  <meta name="description" content="面向建筑玻璃五金外贸人的免费手机英语口语训练 PWA">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>TradeTalk · 外贸英语口语</title>
+</head>
+<body>
+  <aside id="appSidebar" class="app-sidebar" aria-label="应用导航">
+    <div class="sidebar-head">
+      <a class="brand" href="#today" data-route="today" aria-label="回到今日学习">
+        <span class="brand-mark">T</span>
+        <span class="brand-copy"><strong>TradeTalk</strong><small>外贸英语口语</small></span>
+      </a>
+      <button id="collapseSidebar" class="sidebar-collapse" type="button" aria-label="收起导航栏" aria-expanded="true">‹</button>
+    </div>
+    <nav class="side-nav" aria-label="主要导航">
+      <button class="active" data-route="today" type="button"><span>⌂</span><b>今日学习</b></button>
+      <button data-route="practice" type="button"><span>◉</span><b>口语训练</b></button>
+      <button data-route="book" type="button"><span>▤</span><b>词句本</b></button>
+      <button data-route="phonetics" type="button"><span>ə</span><b>国际音标</b></button>
+      <button data-route="industry" type="button"><span>◇</span><b>行业英语</b></button>
+      <button data-route="roleplay" type="button"><span>◎</span><b>客户情景实战</b></button>
+      <button data-route="knowledge" type="button"><span>⌁</span><b>资料采集</b></button>
+      <button data-route="profile" type="button"><span>○</span><b>我的</b></button>
+    </nav>
+    <div class="sidebar-foot">
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="切换深色模式"><span id="themeIcon">☾</span><b id="themeLabel">深色模式</b></button>
+      <small class="sidebar-note">免费 · 本地优先</small>
+    </div>
+  </aside>
+  <button id="sidebarOverlay" class="sidebar-overlay" type="button" aria-label="关闭导航栏" hidden></button>
+  <header class="app-header">
+    <div class="mobile-header-brand"><button id="menuButton" class="icon-button menu-button" type="button" aria-label="打开导航栏">☰</button><strong>TradeTalk</strong></div>
+    <div class="header-actions">
+      <span id="networkBadge" class="status-dot">本地模式</span>
+      <button id="installButton" class="icon-button" type="button" hidden aria-label="安装应用">＋</button>
+    </div>
+  </header>
+
+  <main id="mainContent">
+    <section id="today" class="page active" aria-labelledby="todayTitle">
+      <div class="welcome-row">
+        <div><p id="dateLabel" class="kicker"></p><h1 id="todayTitle">今天，开口说 10 分钟</h1></div>
+        <div class="streak"><span>连续</span><strong id="streakCount">0</strong><span>天</span></div>
+      </div>
+      <div class="daily-card">
+        <div class="daily-copy">
+          <span class="tag">TODAY'S MISSION</span>
+          <h2>从询盘开始一段对话</h2>
+          <p>听懂关键句，跟读录音，再把它用进真实客户沟通。</p>
+          <div class="progress-track"><span id="dailyProgressBar"></span></div>
+          <small id="dailyProgressText">今日 0 / 4 项完成</small>
+        </div>
+        <button id="dailyContinue" class="primary round" type="button">开始训练 <span>→</span></button>
+      </div>
+
+      <section class="daily-path" aria-labelledby="dailyPathTitle">
+        <div class="path-heading"><div><span class="tag">DAILY FLOW</span><h2 id="dailyPathTitle">今日开口路径</h2></div><strong id="dailyPathScore">0 / 5</strong></div>
+        <div id="dailyTaskList" class="task-list">
+          <button data-task="listen" type="button"><span class="task-icon">1</span><span><b>听标准发音</b><small>建立正确声音印象</small></span><i>→</i></button>
+          <button data-task="speak" type="button"><span class="task-icon">2</span><span><b>跟读并录音</b><small>回听自己的表达</small></span><i>→</i></button>
+          <button data-task="save" type="button"><span class="task-icon">3</span><span><b>收藏生词或短语</b><small>建立个人表达库</small></span><i>→</i></button>
+          <button data-task="dialog" type="button"><span class="task-icon">4</span><span><b>完成情景对话</b><small>把短语用进客户沟通</small></span><i>→</i></button>
+          <button data-task="review" type="button"><span class="task-icon">5</span><span><b>完成今日复习</b><small>优先巩固错误表达</small></span><i>→</i></button>
+        </div>
+      </section>
+
+      <div class="section-title"><div><span>01</span><h2>今日固定课程</h2></div><span id="dailyMix" class="count-badge">6 新学 · 2 到期 · 2 薄弱</span></div>
+      <div id="todayPhraseList" class="phrase-list"></div>
+
+      <article id="dailyCompletionReport" class="daily-completion-report" aria-live="polite"></article>
+
+      <div class="section-title"><div><span>02</span><h2>今日复习</h2></div><span id="reviewDueBadge" class="count-badge">0 项</span></div>
+      <article class="review-preview">
+        <div><strong id="reviewHeadline">今天没有待复习内容</strong><p id="reviewSubline">学完短语后，系统会按错误次数安排复习。</p></div>
+        <button class="secondary" data-route="book" type="button">去复习</button>
+      </article>
+    </section>
+
+    <section id="practice" class="page" aria-labelledby="practiceTitle">
+      <div class="page-heading"><div><p class="kicker">LISTEN FIRST · SPEAK OUT LOUD</p><h1 id="practiceTitle">口语训练</h1><p>先盲听，再看英文和中文，最后跟读录音。识别结果只用于文字匹配，不冒充专业发音评分。</p></div><span class="level-pill">A2–B1</span></div>
+      <div class="practice-layout">
+        <article class="coach-card">
+          <div class="coach-top"><span id="practiceScene" class="tag"></span><span id="practiceStep">1 / 3</span></div>
+          <div id="practiceReveal" class="practice-reveal" role="button" tabindex="0" aria-label="点击显示英文，再次点击显示中文">
+            <p id="practiceRevealHint" class="practice-reveal-hint">正在盲听 · 点击显示英文</p>
+            <p id="practicePhrase" class="hero-english" hidden></p>
+            <p id="practiceZh" class="hero-chinese" hidden></p>
+          </div>
+          <div class="listen-row">
+            <button id="listenPractice" class="secondary" type="button">▶ 听标准发音</button>
+            <button id="repeatPractice" class="text-button" type="button">连续播放 3 次</button>
+          </div>
+          <div class="wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <button id="recordButton" class="record-button" type="button"><span class="mic">●</span><span id="recordLabel">按下开始录音</span></button>
+          <p id="recordHint" class="microcopy">录音仅保留最后一条，最长 30 秒；语音识别是否上传由浏览器服务决定。</p>
+          <audio id="recordingPlayback" controls hidden></audio>
+          <div id="feedbackPanel" class="feedback" hidden>
+            <div class="feedback-head"><strong id="feedbackTitle">识别结果</strong><span id="matchBadge"></span></div>
+            <p id="transcriptText"></p>
+            <div id="wordComparison" class="word-comparison" aria-label="逐词识别对照"></div>
+            <div class="feedback-metrics"><span><b id="recognizedCount">0 / 0</b> 单词识别</span><span><b id="keywordCount">0 / 0</b> 关键词识别</span></div>
+            <p id="missingWords" class="missing-words"></p>
+            <p id="feedbackTip"></p>
+            <div class="feedback-actions"><button id="addWeakReview" class="secondary" type="button" hidden>＋ 加入明日复习</button></div>
+          </div>
+          <div class="pager"><button id="prevPractice" type="button">← 上一句</button><button id="nextPractice" type="button">下一句 →</button></div>
+        </article>
+
+        <article class="dialog-card">
+          <div class="dialog-head"><div><span class="tag dark">每日第 4 步 · ROLE PLAY</span><h2>客户情景对话</h2><small id="dialogProgress">第 1 轮</small></div><button id="resetDialog" class="icon-button" type="button" aria-label="重新开始">↻</button></div>
+          <label class="dialog-scenario">练习场景<select id="dialogScenario" aria-label="选择情景对话"></select></label>
+          <p id="dialogContext" class="dialog-context"></p>
+          <div id="dialogPrompt" class="dialog-prompt"></div>
+          <div id="dialogMessages" class="messages" aria-live="polite"></div>
+          <div id="dialogChoices" class="choice-list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="book" class="page" aria-labelledby="bookTitle">
+      <div class="page-heading"><div><p class="kicker">YOUR LIBRARY</p><h1 id="bookTitle">单词本 / 短语本</h1><p>收藏来自每一次真实学习，复习由错误次数自动安排。</p></div><span id="savedCount" class="level-pill">0 条收藏</span></div>
+      <div class="segmented" role="tablist">
+        <button class="active" data-book-tab="words" type="button">生词</button>
+        <button data-book-tab="vocabulary" type="button">V1.1 词库</button>
+        <button data-book-tab="phrases" type="button">短语</button>
+        <button data-book-tab="review" type="button">今日复习</button>
+      </div>
+      <input id="vocabularySearch" class="vocabulary-search" type="search" placeholder="搜索英文词汇或中文释义" aria-label="搜索 V1.1 词库" hidden>
+      <div id="bookList" class="library-list"></div>
+    </section>
+
+    <section id="phonetics" class="page" aria-labelledby="phoneticsTitle">
+      <div class="page-heading"><div><p class="kicker">INTERNATIONAL PHONETIC ALPHABET</p><h1 id="phoneticsTitle">国际音标</h1><p>点击示例单词即可点读、查看音标与中文释义，并可收藏到个人单词本。</p></div><span id="phoneticsCount" class="level-pill">44 个音标</span></div>
+      <div class="phonetics-note"><strong>英式发音参考</strong><span>系统使用设备语音朗读示例单词；音标学习应以单词中的实际发音为准。</span></div>
+      <div id="phoneticsGroups" class="phonetics-groups"></div>
+    </section>
+
+    <section id="courses" class="page" aria-labelledby="coursesTitle">
+      <div class="page-heading course-page-heading">
+        <div><p id="coursesKicker" class="kicker">TRADETALK COURSE</p><h1 id="coursesTitle">行业英语</h1><p id="coursesDescription">按产品系列进入课程。</p></div>
+        <div class="course-heading-actions"><a class="secondary button-link" href="https://app.pagescms.org" target="_blank" rel="noopener">管理课程</a><button id="openGenerator" class="secondary" type="button">＋ 生成微课程</button></div>
+      </div>
+      <section class="course-center" aria-label="课程章节">
+        <section id="courseTrackDetail" class="course-track-detail">
+          <header class="track-detail-head course-breadcrumb-head">
+            <button id="backToTracks" class="text-button" type="button" hidden>← 返回上一级</button>
+            <div><span id="trackDetailKicker" class="tag">INDUSTRY ENGLISH</span><h2 id="trackDetailTitle">产品系列</h2><p id="trackDetailDescription"></p></div>
+            <button id="openAddChapter" class="secondary" type="button">＋ 临时添加产品</button>
+          </header>
+          <div class="lesson-filters single"><select id="lessonLevel" aria-label="课程难度"><option value="all">全部难度</option><option value="A1">A1</option><option value="A2">A2</option><option value="B1">B1</option><option value="B2">B2</option></select></div>
+          <div id="chapterGrid" class="chapter-grid"></div>
+          <div id="chapterLessons" class="chapter-lessons"></div>
+        </section>
+      </section>
+    </section>
+
+    <section id="knowledge" class="page" aria-labelledby="knowledgeTitle">
+      <div class="page-heading"><div><p class="kicker">KNOWLEDGE CENTER</p><h1 id="knowledgeTitle">资料采集</h1><p>集中采集、审核业务资料，再批量加入指定课程章节。</p></div><span id="knowledgePendingCount" class="count-badge">0 条待处理</span></div>
+      <article class="source-lab knowledge-hub">
+        <header class="knowledge-intro">
+          <div class="knowledge-intro-copy">
+            <span class="knowledge-kicker">KNOWLEDGE PIPELINE</span>
+            <h2>把业务资料，变成真正能开口的英语</h2>
+            <p>集中整理产品知识、客户话术和常用术语。系统先提取候选表达，由你确认后再加入现有课程，不会直接改动学习内容。</p>
+            <div class="knowledge-trust"><span>✓ 本机保存</span><span>✓ 保留来源</span><span>✓ 审核后入课</span></div>
+          </div>
+          <div class="knowledge-intro-panel">
+            <div class="knowledge-count-card"><strong id="knowledgeCount">0 条资料</strong><span>当前资料库</span></div>
+            <ol class="knowledge-flow" aria-label="知识采集流程">
+              <li><b>01</b><span>采集资料</span></li>
+              <li><b>02</b><span>提取表达</span></li>
+              <li><b>03</b><span>人工审核</span></li>
+              <li><b>04</b><span>加入课程</span></li>
+            </ol>
+          </div>
+        </header>
+
+        <div class="knowledge-section-heading"><div><span class="tag">COLLECT</span><h3>选择资料来源</h3></div><p>支持文件导入、批量粘贴、公开客户网站和手动记录。</p></div>
+
+        <section class="material-import" aria-labelledby="materialTitle">
+          <div><span class="tag">LEARNING MATERIALS</span><h3 id="materialTitle">导入学习资料</h3></div>
+          <div class="import-row">
+            <select id="importLibrary" aria-label="导入到资料库"><option value="product">产品知识库</option><option value="terms">中英术语库</option><option value="personal">个人表达库</option><option value="scenario">业务场景库</option></select>
+            <input id="importSourceUrl" type="url" inputmode="url" aria-label="资料来源链接" placeholder="来源链接（可选）">
+            <label class="file-button">选择 TXT / MD / CSV / JSON<input id="materialFile" type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json"></label>
+          </div>
+          <small>单个文件不超过 1 MB；解析和保存均在本机完成。</small>
+          <details class="format-guide"><summary>查看推荐资料格式</summary><pre>场景：询盘确认
+客户问题：你们的玻璃夹适配多厚的玻璃？
+英文：Our glass clamp is suitable for 8 to 12 mm glass.
+中文：我们的玻璃夹适用于 8 至 12 毫米玻璃。
+
+每组资料之间空一行。</pre><div class="template-actions"><button id="copyMaterialTemplate" class="text-button" type="button">复制格式模板</button><a class="text-button" href="./templates/learning-material-template.md" download>下载 Markdown 模板</a></div></details>
+        </section>
+
+        <section class="batch-import" aria-labelledby="batchTitle">
+          <div><span class="tag">BATCH COLLECTION</span><h3 id="batchTitle">批量采集资料</h3><p>一次粘贴多组中英资料，每组之间空一行；最多保存 50 组。</p></div>
+          <div class="batch-controls">
+            <select id="batchLibrary" aria-label="批量保存到资料库"><option value="product">产品知识库</option><option value="terms">中英术语库</option><option value="personal">个人表达库</option><option value="scenario">业务场景库</option></select>
+            <textarea id="batchSourceInput" rows="7" aria-label="批量采集内容" placeholder="场景：询盘确认&#10;英文：Our glass clamp is suitable for 8 to 12 mm glass.&#10;中文：我们的玻璃夹适用于 8 至 12 毫米玻璃。&#10;&#10;场景：报价沟通&#10;英文：The price includes standard export packaging.&#10;中文：价格包含标准出口包装。"></textarea>
+            <button id="batchCollect" class="primary" type="button">批量采集并加入待审核</button>
+            <small id="batchCollectStatus">批量采集后，可在资料列表勾选并批量审核。</small>
+          </div>
+        </section>
+
+        <section class="website-import" aria-labelledby="websiteTitle">
+          <div><span class="tag">CUSTOMER WEBSITE</span><h3 id="websiteTitle">客户网站采集</h3><p>提取公开页面的标题、描述、产品文字和常见问题，保存原始网址和采集时间。</p></div>
+          <div class="website-controls">
+            <input id="websiteName" aria-label="客户或网站名称" placeholder="客户或网站名称">
+            <input id="websiteUrl" type="url" inputmode="url" aria-label="客户网站页面" placeholder="https://客户网站/产品页面">
+            <select id="websiteLibrary" aria-label="保存到资料库"><option value="product">产品知识库</option><option value="terms">中英术语库</option><option value="scenario">业务场景库</option></select>
+            <button id="collectWebsite" class="primary" type="button">采集公开页面</button>
+          </div>
+          <small id="websiteStatus">不绕过登录、验证码、robots 限制或网站访问控制。</small>
+        </section>
+
+        <form id="sourceForm" class="source-form">
+          <select id="sourceLibrary" aria-label="资料库"><option value="product">产品知识库</option><option value="terms">中英术语库</option><option value="personal">个人表达库</option><option value="scenario">业务场景库</option></select>
+          <input id="sourceName" aria-label="资料标题" placeholder="资料标题" required>
+          <input id="sourceUrl" aria-label="来源网址" type="url" inputmode="url" placeholder="来源链接（可选）">
+          <textarea id="sourceExcerpt" aria-label="学习资料内容" rows="4" placeholder="粘贴产品知识、术语例句、个人表达或业务场景" required></textarea>
+          <button class="primary" type="submit">保存到资料库</button>
+        </form>
+
+        <div class="library-toolbar">
+          <div class="library-tabs" role="tablist"><button class="active" data-library="all" type="button">全部</button><button data-library="product" type="button">产品</button><button data-library="terms" type="button">术语</button><button data-library="personal" type="button">表达</button><button data-library="scenario" type="button">场景</button></div>
+          <input id="knowledgeSearch" type="search" placeholder="搜索资料库" aria-label="搜索资料库">
+        </div>
+        <div class="bulk-toolbar" aria-label="资料批量操作">
+          <label><input id="selectVisibleKnowledge" type="checkbox"> 选择当前显示</label>
+          <span id="bulkSelectedCount">已选择 0 条</span>
+          <button id="bulkRecognizeChinese" class="secondary" type="button" disabled>批量识别中文</button>
+          <label class="bulk-course-choice">批量选择课程<select id="bulkTargetCourse" aria-label="批量加入课程"><option value="auto">自动识别课程</option></select></label>
+          <button id="bulkReviewKnowledge" class="secondary" type="button" disabled>批量审核并加入课程</button>
+          <button id="bulkDeleteKnowledge" class="danger-link" type="button" disabled>批量删除</button>
+          <small id="bulkChineseStatus">先勾选资料，再统一识别原文中的中文；缺失项将使用免费翻译补齐。</small>
+        </div>
+        <div id="sourceQueue" class="source-queue"></div>
+        <details class="approved-archive">
+          <summary><span>已加入课程的资料</span><strong id="approvedKnowledgeCount">0 条</strong></summary>
+          <p>这里单独保存已经入课的资料，不占用上方待处理列表的 80 条显示额度。</p>
+          <div id="approvedSourceQueue" class="source-queue"></div>
+        </details>
+      </article>
+    </section>
+
+    <section id="profile" class="page" aria-labelledby="profileTitle">
+      <div class="page-heading"><div><p class="kicker">YOUR PROGRESS</p><h1 id="profileTitle">个人中心</h1><p>可使用同步码，在手机与电脑之间同步收藏和学习进度。</p></div></div>
+      <div class="stats-grid">
+        <article><strong id="statLearned">0</strong><span>学过表达</span></article>
+        <article><strong id="statSpoken">0</strong><span>开口次数</span></article>
+        <article><strong id="statMastered">0</strong><span>已掌握</span></article>
+      </div>
+      <div class="settings-grid">
+        <article class="settings-card"><h2>学习设置</h2><label>当前水平<select id="levelSelect"><option>A1 入门</option><option selected>A2 基础沟通</option><option>B1 独立沟通</option><option>B2 熟练沟通</option></select></label><label>朗读速度 <output id="rateOutput">0.9×</output><input id="rateInput" type="range" min="0.6" max="1.2" step="0.1" value="0.9"></label><label class="switch-row">优先英式发音<input id="accentToggle" type="checkbox" checked></label></article>
+        <article class="settings-card sync-card"><h2>跨设备同步 <span class="coming">免费</span></h2><p>手机和电脑填写同一个同步码。同步码相当于密码，请勿发给他人。</p><label>同步码<input id="syncCode" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="输入或生成同步码"></label><div class="sync-actions"><button id="createSync" class="secondary" type="button">生成同步码</button><button id="connectSync" class="primary" type="button">连接并同步</button><button id="syncNow" class="secondary" type="button" disabled>立即同步</button><button id="disconnectSync" class="danger-link" type="button" disabled>断开</button></div><p id="syncStatus" class="microcopy">尚未连接</p></article>
+        <article class="settings-card"><h2>数据与离线</h2><p id="offlineStatus">正在检查离线能力…</p><div class="button-stack"><button id="exportData" class="secondary" type="button">导出学习记录</button><label class="file-button">导入学习记录<input id="importData" type="file" accept="application/json"></label><button id="resetData" class="danger-link" type="button">清除本机学习记录</button></div></article>
+        <article class="settings-card integration-card"><h2>Export Growth Engine</h2><span class="coming">预留接口</span><p>V1 不同步业务数据。后续可通过版本化 JSON 适配器连接工作台。</p><code>window.TradeTalkAdapter.v1</code></article>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="wordDialog">
+    <button class="dialog-close" type="button" aria-label="关闭">×</button>
+    <span class="tag">NEW WORD</span><h2 id="wordTitle"></h2><p id="wordIpa" class="ipa"></p><p id="wordMeaning"></p><p id="wordSource" class="microcopy"></p>
+    <div class="dialog-actions"><button id="speakWord" class="secondary" type="button">▶ 发音</button><button id="saveWord" class="primary" type="button">＋ 加入单词本</button></div>
+  </dialog>
+
+  <dialog id="generatorDialog">
+    <button class="dialog-close" type="button" aria-label="关闭">×</button><span class="tag">COURSE MAKER</span><h2>生成一节微课程</h2><p>免费离线模板会按主题与水平组合实用表达；未来可替换为本地 AI。</p>
+    <label>业务主题<select id="generatorTopic"></select></label><label>难度<select id="generatorLevel"><option>A1</option><option selected>A2</option><option>B1</option><option>B2</option></select></label>
+    <button id="generateCourse" class="primary full" type="button">生成 5 句课程</button>
+    <p id="generatedCourseStatus" class="microcopy"></p>
+    <div id="generatedPreview"></div>
+    <button id="startGeneratedCourse" class="secondary full generated-start" type="button" hidden>开始这节课 →</button>
+  </dialog>
+
+  <dialog id="reviewDialog" class="review-dialog">
+    <button class="dialog-close" type="button" aria-label="关闭">×</button>
+    <span id="reviewStatus" class="tag">待人工审核</span><h2 id="reviewTitle">资料预览</h2>
+    <p class="review-flow">确认原文 → 自动提取 → 人工修订 → 按产品主题加入现有课程</p>
+    <a id="reviewSource" target="_blank" rel="noopener" hidden>查看原始来源 ↗</a>
+    <pre id="reviewContent" class="review-content"></pre>
+    <div class="review-settings"><label>课程主题<select id="reviewTopic"></select></label><label>难度<select id="reviewLevel"><option>A1</option><option selected>A2</option><option>B1</option><option>B2</option></select></label></div>
+    <div class="review-actions"><button id="extractKnowledge" class="secondary" type="button">确认原文并自动提取</button><button id="translateKnowledge" class="secondary" type="button">翻译缺失中文</button><button id="addCandidate" class="text-button" type="button">＋ 手动添加</button></div>
+    <p class="microcopy">免费翻译服务仅处理候选英文表达；译文需人工核对后再入课。</p>
+    <div id="extractionEditor" class="extraction-editor"></div>
+    <p id="reviewValidation" class="review-validation" role="alert" hidden></p>
+    <div class="review-actions final"><button id="approveKnowledge" class="primary" type="button" disabled>确认审核并加入现有课程</button><button id="courseFromKnowledge" class="secondary" type="button" disabled>开始所属课程</button></div>
+  </dialog>
+
+  <dialog id="chapterDialog" class="review-dialog chapter-dialog">
+    <button class="dialog-close" type="button" aria-label="关闭">×</button>
+    <span class="tag">EXTEND COURSE</span><h2>添加产品章节</h2>
+    <p class="microcopy">新章节会立即出现在“玻璃五金专业英语”中，也可在知识采集审核时选择。</p>
+    <label>章节中文名称<input id="chapterZh" type="text" maxlength="40" placeholder="例如：玻璃夹具"></label>
+    <label>英文名称<input id="chapterName" type="text" maxlength="60" placeholder="例如：Glass Clamps（可选）"></label>
+    <label>章节简介<textarea id="chapterDescription" rows="3" maxlength="160" placeholder="说明该产品章节的学习重点（可选）"></textarea></label>
+    <p id="chapterValidation" class="review-validation" role="alert" hidden></p>
+    <button id="saveChapter" class="primary full" type="button">保存并进入章节</button>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="content.js"></script>
+  <script src="v1-1-data.js"></script>
+  <script src="phonetics-data.js"></script>
+  <script src="vendor/easy-speech/EasySpeech.iife.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

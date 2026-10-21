@@ -1,0 +1,13 @@
+{
+  "name": "TradeTalk 外贸英语口语",
+  "short_name": "TradeTalk",
+  "description": "建筑玻璃五金外贸英语口语训练",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f1e8",
+  "theme_color": "#18392f",
+  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}

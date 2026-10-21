@@ -1,0 +1,22 @@
+@import url("/styles.css");
+
+.tradetalk-root {
+  display: contents;
+}
+
+.tradetalk-loading {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  text-align: center;
+  color: #18392f;
+  background: #f4f1e8;
+  font-family: system-ui, sans-serif;
+}
+
+.tradetalk-loading p {
+  margin: 0;
+  color: #66766f;
+}

@@ -1,0 +1,73 @@
+{
+  "title": "行业英语",
+  "subtitle": "按产品系列学习用途、规格、材质、表面处理、安装、测试与包装",
+  "products": [
+    {"id": "glass", "title": "玻璃规格基础", "name": "Glass Specifications", "description": "玻璃类型、厚度、开孔、重量与安全要求。"},
+    {"id": "shower", "title": "淋浴房铰链", "name": "Shower Hinges", "description": "开启方式、回位功能、承重、安装与盐雾测试。"},
+    {"id": "floor", "title": "地弹簧", "name": "Floor Springs", "description": "门重、闭门速度、定位角度与现场调节。"},
+    {"id": "door", "title": "玻璃门五金", "name": "Glass Door Hardware", "description": "门夹、锁夹、拉手及无框玻璃门配置。"},
+    {"id": "spigot", "title": "栏杆立柱与落地夹", "name": "Balustrade Posts & Spigots", "description": "栏杆系统选型、材质、表面处理及固定方式。"},
+    {"id": "standoff", "title": "驳接件与点式固定", "name": "Standoffs & Point Fixings", "description": "孔径、离墙距离、结构固定与承载要求。"},
+    {"id": "sliding", "title": "玻璃滑门系统", "name": "Sliding Door Systems", "description": "轨道、滑轮、缓冲、防跳和安装空间。"}
+  ],
+  "chapters": [
+    {
+      "id": "application",
+      "title": "产品与用途",
+      "name": "Product & Application",
+      "description": "认识产品、典型用途和基础选型表达。",
+      "sources": [{"category": "{product}", "from": 1, "to": 2}]
+    },
+    {
+      "id": "specifications",
+      "title": "规格与选型",
+      "name": "Specifications & Selection",
+      "description": "确认尺寸、承重、玻璃条件和配置要求。",
+      "sources": [{"category": "{product}", "from": 3, "to": 6}]
+    },
+    {
+      "id": "materials",
+      "title": "材质与表面处理",
+      "name": "Materials & Finishes",
+      "description": "304/316、拉丝、镜面、PVD 与表面维护。",
+      "sources": [{"category": "material", "from": 1, "to": 10}]
+    },
+    {
+      "id": "installation",
+      "title": "安装与配件",
+      "name": "Installation & Accessories",
+      "description": "安装步骤、配件确认和现场注意事项。",
+      "sources": [
+        {"category": "{product}", "from": 7, "to": 9},
+        {"category": "installation", "from": 1, "to": 10}
+      ]
+    },
+    {
+      "id": "testing",
+      "title": "测试与认证",
+      "name": "Testing & Certification",
+      "description": "承重、盐雾、跌落测试与质量文件。",
+      "sources": [
+        {"category": "{product}", "from": 10, "to": 10},
+        {"category": "packing", "from": 6, "to": 8}
+      ]
+    },
+    {
+      "id": "packaging",
+      "title": "包装与运输",
+      "name": "Packaging & Shipping",
+      "description": "单件包装、表面保护、标签、托盘与装箱单。",
+      "sources": [
+        {"category": "packing", "from": 1, "to": 5},
+        {"category": "packing", "from": 9, "to": 10}
+      ]
+    },
+    {
+      "id": "customer-questions",
+      "title": "客户常见问题",
+      "name": "Customer Questions",
+      "description": "把本产品知识用于真实客户问答。",
+      "sources": [{"category": "{product}", "from": 1, "to": 10}]
+    }
+  ]
+}

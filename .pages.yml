@@ -1,0 +1,65 @@
+media:
+  input: docs/public/media
+  output: /media
+
+content:
+  - name: industry
+    label: 行业英语
+    type: file
+    path: docs/public/content/industry.json
+    format: json
+    fields:
+      - { name: title, label: 栏目名称, type: string, required: true }
+      - { name: subtitle, label: 栏目说明, type: text }
+      - name: products
+        label: 产品系列
+        type: object
+        list:
+          collapsible: { collapsed: true, summary: "{title}" }
+        fields:
+          - { name: id, label: 产品 ID, type: string, required: true }
+          - { name: title, label: 中文名称, type: string, required: true }
+          - { name: name, label: 英文名称, type: string }
+          - { name: description, label: 产品简介, type: text }
+      - name: chapters
+        label: 产品章节
+        type: object
+        list:
+          collapsible: { collapsed: true, summary: "{title}" }
+        fields:
+          - { name: id, label: 章节 ID, type: string, required: true }
+          - { name: title, label: 中文标题, type: string, required: true }
+          - { name: name, label: 英文标题, type: string }
+          - { name: description, label: 章节说明, type: text }
+          - name: sources
+            label: 内容来源
+            type: object
+            list:
+              collapsible: { collapsed: true, summary: "{category} · {from}-{to}" }
+            fields:
+              - { name: category, label: 内容分类, type: string, required: true }
+              - { name: from, label: 起始序号, type: number, required: true }
+              - { name: to, label: 结束序号, type: number, required: true }
+  - name: scenarios
+    label: 客户情景实战
+    type: file
+    path: docs/public/content/scenarios.json
+    format: json
+    fields:
+      - { name: title, label: 栏目名称, type: string, required: true }
+      - { name: subtitle, label: 栏目说明, type: text }
+      - name: chapters
+        label: 情景章节
+        type: object
+        list:
+          collapsible: { collapsed: true, summary: "{title}" }
+        fields:
+          - { name: id, label: 章节 ID, type: string, required: true }
+          - { name: title, label: 中文标题, type: string, required: true }
+          - { name: name, label: 英文标题, type: string }
+          - { name: description, label: 章节说明, type: text }
+          - { name: businessCategory, label: 基础英语分类 ID, type: string }
+          - name: dialogs
+            label: 情景对话 ID
+            type: string
+            list: true

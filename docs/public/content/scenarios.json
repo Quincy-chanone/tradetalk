@@ -1,0 +1,19 @@
+{
+  "title": "客户情景实战",
+  "subtitle": "把原基础外贸英语融入真实客户沟通流程",
+  "chapters": [
+    {"id": "inquiry", "title": "新询盘与需求确认", "name": "Inquiry & Requirements", "description": "确认产品、数量、用途、项目和目的港。", "businessCategory": "inquiry", "dialogs": ["customer-01"]},
+    {"id": "selection", "title": "产品推荐与选型", "name": "Product Selection", "description": "根据项目条件推荐合适产品和配置。", "businessCategory": "", "dialogs": ["customer-12", "customer-13", "customer-14", "customer-15", "customer-16", "customer-17", "customer-18"]},
+    {"id": "specification", "title": "规格和图纸确认", "name": "Specifications & Drawings", "description": "确认玻璃、孔位、尺寸和技术图纸。", "businessCategory": "", "dialogs": ["customer-11"]},
+    {"id": "quotation", "title": "报价与贸易条款", "name": "Quotation & Terms", "description": "说明报价基础、包装、运费和有效期。", "businessCategory": "quotation", "dialogs": ["customer-02"]},
+    {"id": "negotiation", "title": "价格谈判", "name": "Price Negotiation", "description": "围绕目标价、数量和付款条件协商。", "businessCategory": "negotiation", "dialogs": ["customer-03"]},
+    {"id": "sample", "title": "样品安排", "name": "Sample Arrangement", "description": "确认样品规格、费用、时间和寄送。", "businessCategory": "sample", "dialogs": ["customer-04"]},
+    {"id": "order", "title": "订单确认", "name": "Order Confirmation", "description": "核对采购订单、型号、数量和生产条件。", "businessCategory": "order", "dialogs": ["customer-05"]},
+    {"id": "payment", "title": "付款跟进", "name": "Payment Follow-up", "description": "确认定金、余款、银行回执和到账。", "businessCategory": "payment", "dialogs": ["customer-06"]},
+    {"id": "delivery", "title": "生产与交期", "name": "Production & Lead Time", "description": "回复生产进度、交期和延期风险。", "businessCategory": "delivery", "dialogs": ["customer-07"]},
+    {"id": "packing", "title": "包装与出货", "name": "Packing & Shipment", "description": "确认海运包装、标签、照片和装运资料。", "businessCategory": "delivery", "dialogs": ["customer-20"]},
+    {"id": "quality", "title": "验货与质量问题", "name": "Inspection & Quality", "description": "安排验货并说明检查报告和质量标准。", "businessCategory": "quality", "dialogs": ["customer-08"]},
+    {"id": "aftersales", "title": "投诉与售后", "name": "Claims & After-sales", "description": "收集证据、确认原因并提供解决方案。", "businessCategory": "complaint", "dialogs": ["customer-09", "customer-19"]},
+    {"id": "followup", "title": "项目跟进与客户维护", "name": "Project Follow-up", "description": "推进报价项目并保持后续沟通。", "businessCategory": "followup", "dialogs": ["customer-10"]}
+  ]
+}
