@@ -1,6 +1,8 @@
 import { h, nextTick, onMounted, ref } from "vue";
 import "./wrapper.css";
 
+const assetVersion = "2.0.1";
+
 const scripts = [
   "/content.js",
   "/v1-1-data.js",
@@ -17,7 +19,7 @@ function loadScript(src) {
       return;
     }
     const script = document.createElement("script");
-    script.src = src;
+    script.src = `${src}?v=${assetVersion}`;
     script.dataset.tradetalkSrc = src;
     script.onload = resolve;
     script.onerror = () => reject(new Error(`无法载入 ${src}`));
@@ -31,7 +33,7 @@ const Layout = {
 
     onMounted(async () => {
       try {
-        const response = await fetch("/tradetalk-shell.html");
+        const response = await fetch(`/tradetalk-shell.html?v=${assetVersion}`, { cache: "no-store" });
         if (!response.ok) throw new Error("课程界面载入失败");
         const source = await response.text();
         const documentCopy = new DOMParser().parseFromString(source, "text/html");
