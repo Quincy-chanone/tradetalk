@@ -237,17 +237,24 @@
           <label><input id="selectVisibleKnowledge" type="checkbox"> 选择当前显示</label>
           <span id="bulkSelectedCount">已选择 0 条</span>
           <button id="bulkRecognizeChinese" class="secondary" type="button" disabled>批量识别中文</button>
-          <label class="bulk-course-choice">批量选择课程<select id="bulkTargetCourse" aria-label="批量加入课程"><option value="auto">自动识别课程</option></select></label>
-          <button id="bulkReviewKnowledge" class="secondary" type="button" disabled>批量审核并加入课程</button>
+          <details id="bulkCoursePicker" class="bulk-course-picker">
+            <summary id="bulkCourseSummary">选择目标课程</summary>
+            <div class="course-picker-popover">
+              <label class="auto-target-option"><input id="bulkAutoTargets" type="checkbox" checked> 按每条资料自动推荐</label>
+              <div class="picker-actions"><button id="bulkSelectIndustry" class="text-button" type="button">全选行业英语</button><button id="bulkSelectRoleplay" class="text-button" type="button">全选客户情景</button><button id="bulkClearTargets" class="text-button" type="button">清空手动选择</button></div>
+              <div id="bulkCourseTargets" class="course-target-tree"></div>
+            </div>
+          </details>
+          <button id="bulkReviewKnowledge" class="secondary" type="button" disabled>批量生成课程</button>
           <button id="bulkDeleteKnowledge" class="danger-link" type="button" disabled>批量删除</button>
-          <small id="bulkChineseStatus">先勾选资料，再统一识别原文中的中文；缺失项将使用免费翻译补齐。</small>
+          <small id="bulkChineseStatus">先勾选资料，再自动推荐或批量选择多个课程章节；生成前会显示预览。</small>
         </div>
         <div id="sourceQueue" class="source-queue"></div>
-        <details class="approved-archive">
-          <summary><span>已加入课程的资料</span><strong id="approvedKnowledgeCount">0 条</strong></summary>
-          <p>这里单独保存已经入课的资料，不占用上方待处理列表的 80 条显示额度。</p>
+        <section class="approved-archive" aria-labelledby="approvedKnowledgeTitle">
+          <div class="approved-archive-heading"><div><span id="approvedKnowledgeTitle">已加入课程的资料</span><strong id="approvedKnowledgeCount">0 条</strong></div><button id="toggleApprovedKnowledge" class="secondary" type="button">隐藏已入课</button></div>
+          <p id="approvedKnowledgeNote">这里单独排列已经入课的资料，不占用上方待处理列表的显示额度。</p>
           <div id="approvedSourceQueue" class="source-queue"></div>
-        </details>
+        </section>
       </article>
     </section>
 
@@ -285,15 +292,16 @@
   <dialog id="reviewDialog" class="review-dialog">
     <button class="dialog-close" type="button" aria-label="关闭">×</button>
     <span id="reviewStatus" class="tag">待人工审核</span><h2 id="reviewTitle">资料预览</h2>
-    <p class="review-flow">确认原文 → 自动提取 → 人工修订 → 按产品主题加入现有课程</p>
+    <p class="review-flow">确认原文 → 自动提取 → 人工修订 → 选择一个或多个课程章节</p>
     <a id="reviewSource" target="_blank" rel="noopener" hidden>查看原始来源 ↗</a>
     <pre id="reviewContent" class="review-content"></pre>
-    <div class="review-settings"><label>课程主题<select id="reviewTopic"></select></label><label>难度<select id="reviewLevel"><option>A1</option><option selected>A2</option><option>B1</option><option>B2</option></select></label></div>
+    <div class="review-settings"><label>难度<select id="reviewLevel"><option>A1</option><option selected>A2</option><option>B1</option><option>B2</option></select></label><button id="recommendReviewTargets" class="secondary" type="button">重新自动推荐课程</button></div>
+    <div class="review-course-picker"><div class="review-course-picker-heading"><strong>加入课程（可多选）</strong><span id="reviewCourseCount">已选择 0 个章节</span></div><div id="reviewCourseTargets" class="course-target-tree"></div></div>
     <div class="review-actions"><button id="extractKnowledge" class="secondary" type="button">确认原文并自动提取</button><button id="translateKnowledge" class="secondary" type="button">翻译缺失中文</button><button id="addCandidate" class="text-button" type="button">＋ 手动添加</button></div>
     <p class="microcopy">免费翻译服务仅处理候选英文表达；译文需人工核对后再入课。</p>
     <div id="extractionEditor" class="extraction-editor"></div>
     <p id="reviewValidation" class="review-validation" role="alert" hidden></p>
-    <div class="review-actions final"><button id="approveKnowledge" class="primary" type="button" disabled>确认审核并加入现有课程</button><button id="courseFromKnowledge" class="secondary" type="button" disabled>开始所属课程</button></div>
+    <div class="review-actions final"><button id="approveKnowledge" class="primary" type="button" disabled>确认审核并生成课程</button><button id="courseFromKnowledge" class="secondary" type="button" disabled>查看已加入课程</button></div>
   </dialog>
 
   <dialog id="chapterDialog" class="review-dialog chapter-dialog">

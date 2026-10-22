@@ -20,7 +20,7 @@
   const SYNC_KEY = "tradeTalkSyncCode";
   const SYNC_VERSION_KEY = "tradeTalkSyncVersion";
   const SYNC_DIRTY_KEY = "tradeTalkSyncDirty";
-  const defaultState = {savedWords:{},savedPhrases:{},wordDetails:{},reviews:{},learned:[],itemProgress:{},dailyPlans:{},dialogues:{},spoken:0,mastered:[],days:[],sources:[],knowledgeItems:[],customPhrases:[],customChapters:[],knowledgeCourses:[],dailyTasks:{},generatedCourse:{ids:[],topic:null,level:null,createdAt:null},settings:{rate:.9,accent:"en-GB",level:"A2",theme:null,sidebarCollapsed:false},shuffle:0,courseSchemaVersion:2};
+  const defaultState = {savedWords:{},savedPhrases:{},wordDetails:{},reviews:{},learned:[],itemProgress:{},dailyPlans:{},dialogues:{},spoken:0,mastered:[],days:[],sources:[],knowledgeItems:[],customPhrases:[],customChapters:[],knowledgeCourses:[],dailyTasks:{},generatedCourse:{ids:[],topic:null,level:null,createdAt:null},settings:{rate:.9,accent:"en-GB",level:"A2",theme:null,sidebarCollapsed:false,hideApprovedKnowledge:false},shuffle:0,courseSchemaVersion:2};
   let state = load();
   state=migrateCourseState(state);
   state.settings = {...defaultState.settings,...(state.settings || {})};
@@ -29,8 +29,8 @@
   state.dailyPlans = state.dailyPlans || {};
   state.dialogues = state.dialogues || {};
   state.generatedCourse = {...defaultState.generatedCourse,...(state.generatedCourse || {})};
-  state.knowledgeItems = (state.knowledgeItems || []).map(item => ({...item,status:item.status || "pending",extracted:item.extracted || [],addedPhraseIds:item.addedPhraseIds || []}));
-  state.customPhrases = state.customPhrases || [];
+  state.knowledgeItems = (state.knowledgeItems || []).map(item => ({...item,status:item.status || "pending",extracted:item.extracted || [],addedPhraseIds:item.addedPhraseIds || [],courseAssignments:Array.isArray(item.courseAssignments)?item.courseAssignments:[]}));
+  state.customPhrases = (state.customPhrases || []).map(item=>({...item,courseAssignments:Array.isArray(item.courseAssignments)?item.courseAssignments:[]}));
   state.customChapters = state.customChapters || [];
   state.customChapters.forEach(chapter=>{C.topics[chapter.id]={name:chapter.name||chapter.zh,zh:chapter.zh,icon:chapter.icon||"＋",color:chapter.color||"mint"};});
   const hadStandaloneKnowledgeCourses=(state.knowledgeCourses||[]).length||state.knowledgeItems?.some(item=>item.courseId);state.knowledgeCourses=[];(state.knowledgeItems||[]).forEach(item=>delete item.courseId);if(hadStandaloneKnowledgeCourses)localStorage.setItem(KEY,JSON.stringify(state));
@@ -58,6 +58,8 @@
   let selectedUnit = null;
   let reviewedKnowledgeId = null;
   let extractedCandidates = [];
+  let reviewCourseAssignments = [];
+  const bulkCourseAssignmentKeys = new Set();
   const selectedKnowledgeIds = new Set();
   let visibleKnowledgeIds = [];
   let recorder = null;
@@ -517,12 +519,71 @@
       {id:"roleplay",name:"Customer Role Play",zh:COURSE_CONTENT.scenarios.title||"客户情景实战",description:COURSE_CONTENT.scenarios.subtitle||"真实客户沟通训练",icon:"R",chapters:(COURSE_CONTENT.scenarios.chapters||[]).map(item=>({...item,zh:item.title}))}
     ];
   }
+  function normalizeCourseAssignment(value) {
+    if(!value||!value.track||!value.chapter)return null;
+    if(value.track==="industry"&&!value.unit)return null;
+    if(!["industry","roleplay"].includes(value.track))return null;
+    return {track:value.track,chapter:String(value.chapter),...(value.track==="industry"?{unit:String(value.unit)}:{})};
+  }
+  function courseAssignmentKey(value) { const item=normalizeCourseAssignment(value);return item?`${item.track}:${item.chapter}:${item.unit||""}`:""; }
+  function uniqueCourseAssignments(values) { const seen=new Set();return (values||[]).map(normalizeCourseAssignment).filter(item=>item&&!seen.has(courseAssignmentKey(item))&&seen.add(courseAssignmentKey(item))); }
+  function courseAssignmentLabel(value) {
+    const item=normalizeCourseAssignment(value);if(!item)return "未指定课程";
+    if(item.track==="roleplay"){const chapter=(COURSE_CONTENT.scenarios.chapters||[]).find(entry=>entry.id===item.chapter);return `客户情景实战 · ${chapter?.title||item.chapter}`;}
+    const product=courseTracks().find(track=>track.id==="industry")?.chapters.find(entry=>entry.id===item.chapter);const unit=(COURSE_CONTENT.industry.chapters||[]).find(entry=>entry.id===item.unit);return `行业英语 · ${product?.title||product?.zh||item.chapter} · ${unit?.title||item.unit}`;
+  }
+  function allCourseAssignments() {
+    const products=courseTracks().find(track=>track.id==="industry")?.chapters||[];const units=COURSE_CONTENT.industry.chapters||[];const scenarios=COURSE_CONTENT.scenarios.chapters||[];
+    return [...products.flatMap(product=>units.map(unit=>({track:"industry",chapter:product.id,unit:unit.id}))),...scenarios.map(chapter=>({track:"roleplay",chapter:chapter.id}))];
+  }
+  function inferIndustryUnit(text) {
+    const value=normalize(text);
+    if(/pack|carton|crate|pallet|label|shipping|shipment|container|包装|纸箱|木箱|托盘|标签|运输|装柜/.test(value))return "packaging";
+    if(/finish|polish|brushed|mirror|pvd|coating|stainless|material|304|316|表面|抛光|拉丝|镜面|材质|不锈钢/.test(value))return "materials";
+    if(/install|screw|anchor|fitting|accessor|安装|螺丝|锚栓|配件/.test(value))return "installation";
+    if(/test|certif|salt spray|inspection|quality|测试|认证|盐雾|验货|质量/.test(value))return "testing";
+    if(/size|dimension|thick|weight|load|drawing|spec|尺寸|厚度|承重|图纸|规格|选型/.test(value))return "specifications";
+    if(/question|faq|how|can|could|是否|可以|问题|询问/.test(value))return "customer-questions";
+    return "application";
+  }
+  function inferRoleplayChapter(text) {
+    const value=normalize(text);const rules=[
+      ["aftersales",/complaint|claim|damage|replace|after.?sales|投诉|索赔|破损|更换|售后/],
+      ["quality",/inspection|quality|test report|defect|验货|质量|检测|缺陷/],
+      ["packing",/pack|carton|crate|pallet|label|shipment|container|包装|纸箱|木箱|托盘|标签|出货|装柜/],
+      ["delivery",/lead time|production|delivery|delay|交期|生产|延期/],
+      ["payment",/payment|deposit|balance|bank|付款|定金|余款|银行/],
+      ["order",/purchase order|\bpo\b|order confirm|订单|采购单/],
+      ["sample",/sample|样品/],
+      ["negotiation",/discount|target price|negotia|折扣|目标价|议价|谈判/],
+      ["quotation",/quote|quotation|price|incoterm|fob|cif|报价|价格|贸易条款/],
+      ["specification",/drawing|dimension|thick|specification|图纸|尺寸|厚度|规格/],
+      ["selection",/recommend|selection|choose|application|推荐|选型|选择|用途/],
+      ["followup",/follow.?up|project status|跟进|客户维护|项目进展/]
+    ];return rules.find(([,pattern])=>pattern.test(value))?.[0]||"inquiry";
+  }
+  function recommendCourseAssignments(item) {
+    const text=`${item?.title||""} ${item?.content||""} ${(item?.tags||[]).join(" ")}`;const product=chapterForTopic(item?.reviewTopic||inferTopic(text));
+    return uniqueCourseAssignments([{track:"industry",chapter:product,unit:inferIndustryUnit(text)},{track:"roleplay",chapter:inferRoleplayChapter(text)}]);
+  }
+  function renderCourseTargetTree(root,selectedKeys,onChange) {
+    if(!root)return;root.replaceChildren();const products=courseTracks().find(track=>track.id==="industry")?.chapters||[];const units=COURSE_CONTENT.industry.chapters||[];
+    const industry=document.createElement("section");industry.className="target-track";industry.innerHTML='<h4>行业英语</h4>';
+    products.forEach(product=>{const details=document.createElement("details");details.className="target-product";const count=units.filter(unit=>selectedKeys.has(courseAssignmentKey({track:"industry",chapter:product.id,unit:unit.id}))).length;details.open=count>0;details.innerHTML=`<summary><span>${esc(product.title||product.zh)}</span><small>${count?`已选 ${count}`:"选择章节"}</small></summary>`;const grid=document.createElement("div");grid.className="target-option-grid";units.forEach(unit=>{const assignment={track:"industry",chapter:product.id,unit:unit.id};const key=courseAssignmentKey(assignment);const label=document.createElement("label");label.innerHTML=`<input type="checkbox" ${selectedKeys.has(key)?"checked":""}> <span>${esc(unit.title)}</span>`;label.querySelector("input").onchange=event=>{event.target.checked?selectedKeys.add(key):selectedKeys.delete(key);onChange?.();};grid.appendChild(label);});details.appendChild(grid);industry.appendChild(details);});root.appendChild(industry);
+    const roleplay=document.createElement("section");roleplay.className="target-track";roleplay.innerHTML='<h4>客户情景实战</h4>';const grid=document.createElement("div");grid.className="target-option-grid roleplay-targets";(COURSE_CONTENT.scenarios.chapters||[]).forEach(chapter=>{const assignment={track:"roleplay",chapter:chapter.id};const key=courseAssignmentKey(assignment);const label=document.createElement("label");label.innerHTML=`<input type="checkbox" ${selectedKeys.has(key)?"checked":""}> <span>${esc(chapter.title)}</span>`;label.querySelector("input").onchange=event=>{event.target.checked?selectedKeys.add(key):selectedKeys.delete(key);onChange?.();};grid.appendChild(label);});roleplay.appendChild(grid);root.appendChild(roleplay);
+  }
+  function assignmentsFromKeys(keys) { const catalog=new Map(allCourseAssignments().map(item=>[courseAssignmentKey(item),item]));return [...keys].map(key=>catalog.get(key)).filter(Boolean); }
+  function renderBulkCourseTargets() {
+    const automatic=$("bulkAutoTargets")?.checked!==false;renderCourseTargetTree($("bulkCourseTargets"),bulkCourseAssignmentKeys,renderBulkCourseTargets);const count=bulkCourseAssignmentKeys.size;const summary=$("bulkCourseSummary");if(summary)summary.textContent=automatic?(count?`自动推荐 + ${count} 个统一章节`:"自动推荐目标课程"):(count?`已选择 ${count} 个目标章节`:"请选择目标课程");
+  }
+  function setBulkTrackSelection(track,selected) { allCourseAssignments().filter(item=>item.track===track).forEach(item=>{const key=courseAssignmentKey(item);selected?bulkCourseAssignmentKeys.add(key):bulkCourseAssignmentKeys.delete(key);});renderBulkCourseTargets(); }
   function chapterItems(trackId,chapterId) {
     const level=$("lessonLevel")?.value||"all";
-    return allPhrases().filter(item=>item.module===trackId&&item.category===chapterId&&(level==="all"||item.level===level));
+    return allPhrases().filter(item=>(item.module===trackId&&item.category===chapterId||(item.courseAssignments||[]).some(target=>target.track===trackId&&target.chapter===chapterId))&&(level==="all"||item.level===level));
   }
   function sourceItems(productId,chapter) {
     const level=$("lessonLevel")?.value||"all";const seen=new Set();const result=[];
+    allPhrases().filter(item=>(item.courseAssignments||[]).some(target=>target.track==="industry"&&target.chapter===productId&&target.unit===chapter?.id)&&(level==="all"||item.level===level)).forEach(item=>{if(!seen.has(item.id)){seen.add(item.id);result.push(item);}});
     (chapter?.sources||[]).forEach(source=>{const category=String(source.category||"").replace("{product}",productId);const items=allPhrases().filter(item=>item.module==="industry"&&item.category===category&&(level==="all"||item.level===level));const start=Math.max(0,Number(source.from||1)-1);const end=Math.max(start+1,Number(source.to||items.length));items.slice(start,end).forEach(item=>{if(!seen.has(item.id)){seen.add(item.id);result.push(item);}});});
     return result;
   }
@@ -548,7 +609,7 @@
     const chapters=COURSE_CONTENT.scenarios.chapters||[];const chapter=chapters.find(item=>item.id===selectedChapter);const grid=$("chapterGrid");const lessons=$("chapterLessons");grid.replaceChildren();lessons.replaceChildren();$("coursesKicker").textContent="CUSTOMER ROLE PLAY";$("coursesTitle").textContent=COURSE_CONTENT.scenarios.title||"客户情景实战";$("coursesDescription").textContent=COURSE_CONTENT.scenarios.subtitle||"真实客户沟通训练";$("openAddChapter").hidden=true;
     if(!chapter){$("trackDetailKicker").textContent="BUSINESS FLOW";$("trackDetailTitle").textContent="客户沟通章节";$("trackDetailDescription").textContent="基础句型已经归入对应情景，不再作为重复的独立课程。";$("backToTracks").hidden=true;chapters.forEach((item,index)=>renderChapterCard(grid,item,index,"客户情景",()=>route(`roleplay/${item.id}`)));return;}
     $("trackDetailKicker").textContent=chapter.name||"CUSTOMER SCENARIO";$("trackDetailTitle").textContent=chapter.title;$("trackDetailDescription").textContent=chapter.description||"";$("backToTracks").hidden=false;$("backToTracks").textContent="← 返回客户情景";
-    const level=$("lessonLevel")?.value||"all";const phrases=allPhrases().filter(item=>item.module==="business"&&item.category===chapter.businessCategory&&(level==="all"||item.level===level));lessons.innerHTML=`<div class="section-title"><div><span>CORE ENGLISH</span><h2>核心词汇与句型</h2></div><small>${phrases.length} 条表达</small></div>`;renderLessonCatalog(lessons,phrases,chapter.title);
+    const level=$("lessonLevel")?.value||"all";const phrases=allPhrases().filter(item=>(item.module==="business"&&item.category===chapter.businessCategory||(item.courseAssignments||[]).some(target=>target.track==="roleplay"&&target.chapter===chapter.id))&&(level==="all"||item.level===level));lessons.innerHTML=`<div class="section-title"><div><span>CORE ENGLISH</span><h2>核心词汇与句型</h2></div><small>${phrases.length} 条表达</small></div>`;renderLessonCatalog(lessons,phrases,chapter.title);
     const roleplayTitle=document.createElement("div");roleplayTitle.className="section-title roleplay-section-title";roleplayTitle.innerHTML='<div><span>ROLE PLAY</span><h2>客户对话练习</h2></div>';lessons.appendChild(roleplayTitle);const catalog=document.createElement("div");catalog.className="lesson-catalog";lessons.appendChild(catalog);(chapter.dialogs||[]).forEach((id,index)=>{const dialog=C.dialogs[id];if(!dialog||(level!=="all"&&dialog.level!==level))return;const button=document.createElement("button");button.className="lesson-tile";button.type="button";button.innerHTML=`<span class="lesson-tile-icon">${String(index+1).padStart(2,"0")}</span><span><strong>${esc(dialog.title)}</strong><small>${esc(dialog.level)} · ${esc(dialog.context)}</small></span><i>→</i>`;button.onclick=()=>startRoleplay(id);catalog.appendChild(button);});if(!catalog.children.length)catalog.innerHTML='<div class="source-empty">当前难度没有情景对话，请切换难度。</div>';
   }
   function renderTrackDetail() { renderCourses(); }
@@ -560,21 +621,22 @@
     const filtered=state.knowledgeItems.filter(item=>(libraryView==="all"||item.library===libraryView)&&(!query||normalize(`${item.title} ${item.content} ${(item.tags||[]).join(" ")}`).includes(query)));
     const pending=filtered.filter(item=>item.status!=="approved");const approved=filtered.filter(item=>item.status==="approved");const items=pending.slice(0,80);
     $("knowledgeCount").textContent=`${pending.length} 条待处理 · ${approved.length} 条已入课`;$("knowledgePendingCount").textContent=`${pending.length} 条待处理`;$("approvedKnowledgeCount").textContent=`${approved.length} 条`;
+    const approvedHidden=Boolean(state.settings.hideApprovedKnowledge);archive.hidden=approvedHidden;$("approvedKnowledgeNote").hidden=approvedHidden;$("toggleApprovedKnowledge").textContent=approvedHidden?`显示已入课（${approved.length}）`:"隐藏已入课";$("toggleApprovedKnowledge").setAttribute("aria-expanded",String(!approvedHidden));
     visibleKnowledgeIds=items.map(item=>item.id);[...selectedKnowledgeIds].forEach(id=>{const item=state.knowledgeItems.find(entry=>entry.id===id);if(!item||item.status==="approved")selectedKnowledgeIds.delete(id);});
     if(!items.length)root.innerHTML='<div class="source-empty">当前分类没有待处理资料。可继续采集，或在下方查看已入课资料。</div>';
     items.forEach(item=>{const row=document.createElement("div");row.className="source-item";const source=safeUrl(item.sourceUrl);const status=item.status==="extracted"?`已自动提取 · ${item.extracted?.filter(x=>x.en).length||0} 条待确认`:"待确认原文";const meta=[status,new Date(item.addedAt).toLocaleDateString("zh-CN"),item.origin==="website"?"客户网站":"本地导入"].join(" · ");row.innerHTML=`<label class="source-select"><input data-select type="checkbox" aria-label="选择 ${esc(item.title)}" ${selectedKnowledgeIds.has(item.id)?"checked":""}></label><div class="source-item-content"><span class="library-chip">${esc(labels[item.library]||"资料")}</span><strong>${esc(item.title)}</strong><small>${esc(meta)}</small><p>${esc(String(item.content||"").slice(0,420))}${String(item.content||"").length>420?"…":""}</p>${source?`<a href="${esc(source)}" target="_blank" rel="noopener">查看来源 ↗</a>`:""}</div><div class="source-item-actions"><button data-review type="button">继续处理</button><button data-delete type="button">删除</button></div>`;row.querySelector("[data-select]").onchange=event=>{event.target.checked?selectedKnowledgeIds.add(item.id):selectedKnowledgeIds.delete(item.id);updateBulkToolbar();};row.querySelector("[data-review]").onclick=()=>openKnowledgeReview(item.id);row.querySelector("[data-delete]").onclick=()=>deleteKnowledgeItems([item.id]);root.appendChild(row);});
     if(!approved.length)archive.innerHTML='<div class="source-empty">还没有已加入课程的资料。</div>';
-    approved.forEach(item=>{const row=document.createElement("div");row.className="source-item approved-source-item";const source=safeUrl(item.sourceUrl);const category=chapterForTopic(item.reviewTopic||inferTopic(`${item.title} ${item.content}`));const meta=[`已加入「${industryChapterName(category)}」`,`${item.addedPhraseIds?.length||0} 条表达`,new Date(item.reviewedAt||item.addedAt).toLocaleDateString("zh-CN")].join(" · ");row.innerHTML=`<div class="source-item-content"><span class="library-chip">${esc(labels[item.library]||"资料")}</span><strong>${esc(item.title)}</strong><small>${esc(meta)}</small><p>${esc(String(item.content||"").slice(0,260))}${String(item.content||"").length>260?"…":""}</p>${source?`<a href="${esc(source)}" target="_blank" rel="noopener">查看来源 ↗</a>`:""}</div><div class="source-item-actions"><button data-course type="button">查看所属课程</button><button data-delete type="button">删除</button></div>`;row.querySelector("[data-course]").onclick=()=>openKnowledgeReview(item.id);row.querySelector("[data-delete]").onclick=()=>deleteKnowledgeItems([item.id]);archive.appendChild(row);});updateBulkToolbar();
+    approved.forEach(item=>{const row=document.createElement("div");row.className="source-item approved-source-item";const source=safeUrl(item.sourceUrl);const assignments=uniqueCourseAssignments(item.courseAssignments);const courseText=assignments.length?`${courseAssignmentLabel(assignments[0])}${assignments.length>1?` 等 ${assignments.length} 个章节`:""}`:`行业英语 · ${industryChapterName(chapterForTopic(item.reviewTopic||inferTopic(`${item.title} ${item.content}`)))}`;const meta=[`已加入 ${courseText}`,`${item.addedPhraseIds?.length||0} 条表达`,new Date(item.reviewedAt||item.addedAt).toLocaleDateString("zh-CN")].join(" · ");row.innerHTML=`<div class="source-item-content"><span class="library-chip">${esc(labels[item.library]||"资料")}</span><strong>${esc(item.title)}</strong><small>${esc(meta)}</small><p>${esc(String(item.content||"").slice(0,260))}${String(item.content||"").length>260?"…":""}</p>${source?`<a href="${esc(source)}" target="_blank" rel="noopener">查看来源 ↗</a>`:""}</div><div class="source-item-actions"><button data-course type="button">查看所属课程</button><button data-delete type="button">删除</button></div>`;row.querySelector("[data-course]").onclick=()=>openKnowledgeReview(item.id);row.querySelector("[data-delete]").onclick=()=>deleteKnowledgeItems([item.id]);archive.appendChild(row);});updateBulkToolbar();
   }
   function updateBulkToolbar() {
-    const selected=[...selectedKnowledgeIds].filter(id=>state.knowledgeItems.some(item=>item.id===id&&item.status!=="approved"));const visibleSelected=visibleKnowledgeIds.filter(id=>selectedKnowledgeIds.has(id));const toggle=$("selectVisibleKnowledge");toggle.checked=visibleKnowledgeIds.length>0&&visibleSelected.length===visibleKnowledgeIds.length;toggle.indeterminate=visibleSelected.length>0&&visibleSelected.length<visibleKnowledgeIds.length;$("bulkSelectedCount").textContent=`已选择 ${selected.length} 条`;$("bulkRecognizeChinese").disabled=!selected.length;$("bulkTargetCourse").disabled=!selected.length;$("bulkReviewKnowledge").disabled=!selected.length;$("bulkDeleteKnowledge").disabled=!selected.length;
+    const selected=[...selectedKnowledgeIds].filter(id=>state.knowledgeItems.some(item=>item.id===id&&item.status!=="approved"));const visibleSelected=visibleKnowledgeIds.filter(id=>selectedKnowledgeIds.has(id));const toggle=$("selectVisibleKnowledge");toggle.checked=visibleKnowledgeIds.length>0&&visibleSelected.length===visibleKnowledgeIds.length;toggle.indeterminate=visibleSelected.length>0&&visibleSelected.length<visibleKnowledgeIds.length;$("bulkSelectedCount").textContent=`已选择 ${selected.length} 条`;$("bulkRecognizeChinese").disabled=!selected.length;$("bulkReviewKnowledge").disabled=!selected.length;$("bulkDeleteKnowledge").disabled=!selected.length;$("bulkCoursePicker").classList.toggle("disabled",!selected.length);
   }
   function deleteKnowledgeItems(ids) {
     const targets=[...new Set(ids)].filter(id=>state.knowledgeItems.some(item=>item.id===id));if(!targets.length)return;if(!confirm(`确定删除 ${targets.length} 条资料吗？`))return;const targetSet=new Set(targets);state.knowledgeItems=state.knowledgeItems.filter(item=>!targetSet.has(item.id));targets.forEach(id=>selectedKnowledgeIds.delete(id));save();renderSources();renderCourses();toast(`已删除 ${targets.length} 条资料`);
   }
   function safeUrl(value) { try { const url=new URL(value);return /^https?:$/.test(url.protocol)?url.href:""; } catch (_) { return ""; } }
   function commitKnowledge(items) {
-    const clean=items.filter(item=>item?.title&&item?.content).slice(0,100).map(item=>({id:item.id||uid(),library:item.library||"product",title:String(item.title).trim().slice(0,180),content:String(item.content).trim().slice(0,20000),sourceUrl:safeUrl(item.sourceUrl),tags:Array.isArray(item.tags)?item.tags.slice(0,20):[],addedAt:item.addedAt||new Date().toISOString(),origin:item.origin||"import",meta:item.meta||{},status:item.status||"pending",extracted:item.extracted||[],addedPhraseIds:item.addedPhraseIds||[]}));
+    const clean=items.filter(item=>item?.title&&item?.content).slice(0,100).map(item=>({id:item.id||uid(),library:item.library||"product",title:String(item.title).trim().slice(0,180),content:String(item.content).trim().slice(0,20000),sourceUrl:safeUrl(item.sourceUrl),tags:Array.isArray(item.tags)?item.tags.slice(0,20):[],addedAt:item.addedAt||new Date().toISOString(),origin:item.origin||"import",meta:item.meta||{},status:item.status||"pending",extracted:item.extracted||[],addedPhraseIds:item.addedPhraseIds||[],courseAssignments:uniqueCourseAssignments(item.courseAssignments)}));
     state.knowledgeItems=[...clean,...state.knowledgeItems].slice(0,300);save();renderSources();return clean.length;
   }
   function collectBatchMaterials() {
@@ -592,8 +654,7 @@
   function refreshTopicOptions() {
     const topics=Object.entries(C.topics).filter(([id])=>!["business","industry"].includes(id));
     const generator=$("generatorTopic");if(generator){const current=generator.value;generator.replaceChildren(...topics.map(([id,topic])=>{const option=document.createElement("option");option.value=id;option.textContent=`${topic.name} · ${topic.zh}`;return option;}));if(topics.some(([id])=>id===current))generator.value=current;}
-    const chapters=courseTracks().find(track=>track.id==="industry")?.chapters||[];const review=$("reviewTopic");if(review){const current=chapterForTopic(review.value);review.replaceChildren(...chapters.map(chapter=>{const option=document.createElement("option");option.value=chapter.id;option.textContent=`${chapter.name} · ${chapter.zh}`;return option;}));if(chapters.some(chapter=>chapter.id===current))review.value=current;}
-    const bulk=$("bulkTargetCourse");if(bulk){const current=bulk.value||"auto";const automatic=document.createElement("option");automatic.value="auto";automatic.textContent="自动识别课程";bulk.replaceChildren(automatic,...chapters.map(chapter=>{const option=document.createElement("option");option.value=chapter.id;option.textContent=chapter.zh;return option;}));if(current==="auto"||chapters.some(chapter=>chapter.id===current))bulk.value=current;}
+    renderBulkCourseTargets();
   }
   function addProductChapter() {
     const zh=$("chapterZh").value.trim();const name=$("chapterName").value.trim()||zh;const description=$("chapterDescription").value.trim();const validation=$("chapterValidation");
@@ -680,12 +741,16 @@
     const item=state.knowledgeItems.find(entry=>entry.id===id);if(!item)return;reviewedKnowledgeId=id;
     $("reviewTitle").textContent=item.title;$("reviewContent").textContent=item.content;$("reviewStatus").textContent=item.status==="approved"?`已加入现有课程 · ${item.addedPhraseIds?.length||0} 条表达`:item.status==="extracted"?"已自动提取 · 等待人工确认":"待确认原文";
     const source=safeUrl(item.sourceUrl);$("reviewSource").hidden=!source;$("reviewSource").href=source||"#";
-    $("reviewTopic").value=chapterForTopic(item.reviewTopic||inferTopic(`${item.title} ${item.content}`));$("reviewLevel").value=item.reviewLevel||state.settings.level||"A2";
+    $("reviewLevel").value=item.reviewLevel||state.settings.level||"A2";reviewCourseAssignments=uniqueCourseAssignments(item.courseAssignments?.length?item.courseAssignments:recommendCourseAssignments(item));renderReviewCourseTargets();
     const refreshed=refreshBilingualCandidates(item);extractedCandidates=refreshed.candidates;renderCandidateEditor();if(refreshed.updated){save();renderSources();toast("已从原资料重新识别中英文配对");}
-    $("extractKnowledge").textContent=item.extracted?.length?"重新确认并自动提取":"确认原文并自动提取";$("approveKnowledge").textContent=item.status==="approved"?"保存修改并更新现有课程":"确认审核并加入现有课程";$("courseFromKnowledge").disabled=!(item.status==="approved"&&item.addedPhraseIds?.length);$("reviewDialog").showModal();
+    $("extractKnowledge").textContent=item.extracted?.length?"重新确认并自动提取":"确认原文并自动提取";$("approveKnowledge").textContent=item.status==="approved"?"保存修改并更新课程":"确认审核并生成课程";$("courseFromKnowledge").disabled=!(item.status==="approved"&&item.addedPhraseIds?.length);$("reviewDialog").showModal();
   }
+  function renderReviewCourseTargets() {
+    const keys=new Set(reviewCourseAssignments.map(courseAssignmentKey));renderCourseTargetTree($("reviewCourseTargets"),keys,()=>{reviewCourseAssignments=assignmentsFromKeys(keys);renderReviewCourseTargets();});$("reviewCourseCount").textContent=`已选择 ${keys.size} 个章节`;
+  }
+  function recommendReviewCourseTargets() { const item=state.knowledgeItems.find(entry=>entry.id===reviewedKnowledgeId);if(!item)return;reviewCourseAssignments=recommendCourseAssignments(item);renderReviewCourseTargets();toast(`已推荐 ${reviewCourseAssignments.length} 个课程章节，可继续调整`); }
   function extractKnowledge() {
-    const item=state.knowledgeItems.find(entry=>entry.id===reviewedKnowledgeId);if(!item)return;extractedCandidates=extractKnowledgeCandidates(item);item.status="extracted";item.reviewConfirmedAt=new Date().toISOString();item.reviewTopic=$("reviewTopic").value;item.reviewLevel=$("reviewLevel").value;item.extracted=extractedCandidates.map(candidate=>({...candidate}));save();renderCandidateEditor();renderSources();$("reviewStatus").textContent="已自动提取 · 等待人工确认";$("extractKnowledge").textContent="重新确认并自动提取";toast(`已自动提取 ${extractedCandidates.filter(x=>x.en).length} 条候选，请核对后确认`);
+    const item=state.knowledgeItems.find(entry=>entry.id===reviewedKnowledgeId);if(!item)return;extractedCandidates=extractKnowledgeCandidates(item);item.status="extracted";item.reviewConfirmedAt=new Date().toISOString();item.reviewLevel=$("reviewLevel").value;item.extracted=extractedCandidates.map(candidate=>({...candidate}));save();renderCandidateEditor();renderSources();$("reviewStatus").textContent="已自动提取 · 等待人工确认";$("extractKnowledge").textContent="重新确认并自动提取";toast(`已自动提取 ${extractedCandidates.filter(x=>x.en).length} 条候选，请核对后确认`);
   }
   async function translateMissingKnowledge() {
     const item=state.knowledgeItems.find(entry=>entry.id===reviewedKnowledgeId);if(!item)return;if(!extractedCandidates.some(candidate=>String(candidate.en||"").trim()))extractKnowledge();const targets=extractedCandidates.map((candidate,index)=>({candidate,index})).filter(({candidate})=>candidate.selected!==false&&String(candidate.en||"").trim()&&!String(candidate.zh||"").trim());if(!targets.length){toast("当前候选表达已有中文释义");return;}const button=$("translateKnowledge");button.disabled=true;button.textContent=`正在翻译 ${targets.length} 条…`;$("reviewStatus").textContent="正在翻译 · 请稍候";
@@ -694,18 +759,19 @@
     finally{button.disabled=false;button.textContent="翻译缺失中文";}
   }
   function addCandidate() { extractedCandidates.push({selected:true,en:"",zh:"",scene:"产品沟通"});renderCandidateEditor();$("extractionEditor").lastElementChild?.querySelector('input[type="text"]')?.focus(); }
-  function storeApprovedCandidates(item,candidates,category,level) {
-    category=chapterForTopic(category);const topic=topicForChapter(category);const categoryZh=industryChapterName(category);const ids=[];candidates.forEach((candidate,index)=>{const en=String(candidate.en).trim();const zh=String(candidate.zh).trim();const scene=String(candidate.scene||"产品沟通").trim();const existing=(candidate.phraseId&&allPhrases().find(phrase=>phrase.id===canonicalPhraseId(candidate.phraseId)))||allPhrases().find(phrase=>normalize(phrase.en)===normalize(en));if(existing){if(existing.custom&&existing.sourceId===item.id)Object.assign(existing,{topic,module:"industry",category,categoryZh,scene,en,zh,level,sourceUrl:item.sourceUrl||""});candidate.phraseId=existing.id;ids.push(existing.id);return;}const id=`custom-${item.id}-${index}-${uid()}`;state.customPhrases.push({id,topic,module:"industry",category,categoryZh,scene,en,zh,level,words:[],sourceId:item.id,sourceUrl:item.sourceUrl||"",custom:true});candidate.phraseId=id;ids.push(id);});item.status="approved";item.reviewedAt=new Date().toISOString();item.reviewTopic=category;item.reviewLevel=level;item.extracted=candidates.map(candidate=>({...candidate}));item.addedPhraseIds=[...new Set(ids)];delete item.courseId;state.knowledgeCourses=[];return item.addedPhraseIds.length;
+  function storeApprovedCandidates(item,candidates,assignments,level) {
+    assignments=uniqueCourseAssignments(assignments);const primary=assignments[0];const legacyCategory=primary?.track==="industry"?primary.chapter:(COURSE_CONTENT.scenarios.chapters||[]).find(chapter=>chapter.id===primary?.chapter)?.businessCategory||primary?.chapter||"inquiry";const legacyModule=primary?.track==="roleplay"?"business":"industry";const categoryZh=primary?courseAssignmentLabel(primary):"课程表达";const ids=[];
+    candidates.forEach((candidate,index)=>{const en=String(candidate.en).trim();const zh=String(candidate.zh).trim();const scene=String(candidate.scene||"产品沟通").trim();const existing=(candidate.phraseId&&state.customPhrases.find(phrase=>phrase.id===canonicalPhraseId(candidate.phraseId)&&phrase.sourceId===item.id))||state.customPhrases.find(phrase=>phrase.sourceId===item.id&&normalize(phrase.en)===normalize(en));if(existing){Object.assign(existing,{topic:topicForChapter(legacyCategory),module:legacyModule,category:legacyCategory,categoryZh,scene,en,zh,level,sourceUrl:item.sourceUrl||"",courseAssignments:assignments});candidate.phraseId=existing.id;ids.push(existing.id);return;}const id=`custom-${item.id}-${index}-${uid()}`;state.customPhrases.push({id,topic:topicForChapter(legacyCategory),module:legacyModule,category:legacyCategory,categoryZh,scene,en,zh,level,words:[],sourceId:item.id,sourceUrl:item.sourceUrl||"",custom:true,courseAssignments:assignments});candidate.phraseId=id;ids.push(id);});item.status="approved";item.reviewedAt=new Date().toISOString();item.reviewTopic=primary?.chapter||item.reviewTopic;item.reviewLevel=level;item.extracted=candidates.map(candidate=>({...candidate}));item.addedPhraseIds=[...new Set(ids)];item.courseAssignments=assignments;delete item.courseId;state.knowledgeCourses=[];return item.addedPhraseIds.length;
   }
   function approveKnowledge() {
     const item=state.knowledgeItems.find(entry=>entry.id===reviewedKnowledgeId);if(!item)return false;
     const selected=extractedCandidates.filter(candidate=>candidate.selected!==false&&String(candidate.en||"").trim());const validation=$("reviewValidation");document.querySelectorAll(".candidate-row").forEach(row=>row.classList.remove("has-error"));if(!selected.length){validation.textContent="请至少选择一条英文表达。";validation.hidden=false;validation.scrollIntoView({behavior:"smooth",block:"nearest"});return false;}
     const missingIndexes=[];extractedCandidates.forEach((candidate,index)=>{if(candidate.selected!==false&&String(candidate.en||"").trim()&&!String(candidate.zh||"").trim())missingIndexes.push(index);});if(missingIndexes.length){missingIndexes.forEach(index=>$("extractionEditor").children[index]?.classList.add("has-error"));validation.textContent=`还有 ${missingIndexes.length} 条中文释义为空。请补充，或取消勾选后再加入课程。`;validation.hidden=false;validation.scrollIntoView({behavior:"smooth",block:"nearest"});return false;}validation.hidden=true;
-    const category=$("reviewTopic").value;const level=$("reviewLevel").value;const added=storeApprovedCandidates(item,selected,category,level);
-    save();renderSources();renderCourses();$("reviewStatus").textContent=`已加入现有课程 · ${item.addedPhraseIds.length} 条表达`;$("approveKnowledge").textContent="✓ 已保存并更新现有课程";$("courseFromKnowledge").disabled=!added;$("reviewDialog").close();toast(`已加入「${industryChapterName(category)}」章节：${item.addedPhraseIds.length} 条表达`);return true;
+    const assignments=uniqueCourseAssignments(reviewCourseAssignments);if(!assignments.length){validation.textContent="请至少选择一个行业英语或客户情景实战章节。";validation.hidden=false;validation.scrollIntoView({behavior:"smooth",block:"nearest"});return false;}const level=$("reviewLevel").value;const added=storeApprovedCandidates(item,selected,assignments,level);
+    save();renderSources();renderCourses();$("reviewStatus").textContent=`已加入 ${assignments.length} 个课程章节 · ${item.addedPhraseIds.length} 条表达`;$("approveKnowledge").textContent="✓ 已保存并更新课程";$("courseFromKnowledge").disabled=!added;$("reviewDialog").close();toast(`已生成课程：${item.addedPhraseIds.length} 条表达加入 ${assignments.length} 个章节`);return true;
   }
   function bulkReviewKnowledge() {
-    const items=state.knowledgeItems.filter(item=>selectedKnowledgeIds.has(item.id)&&item.status!=="approved");if(!items.length)return;const target=$("bulkTargetCourse").value;const destination=target==="auto"?"自动识别对应课程章节":`统一加入「${industryChapterName(target)}」`;if(!confirm(`确定自动提取并审核 ${items.length} 条资料吗？中英文完整的表达将${destination}。`))return;let approved=0;let skipped=0;items.forEach(item=>{const refreshed=refreshBilingualCandidates(item);const candidates=(refreshed.candidates.length?refreshed.candidates:extractKnowledgeCandidates(item));const selected=candidates.filter(candidate=>candidate.selected!==false&&String(candidate.en||"").trim());item.extracted=candidates;item.reviewConfirmedAt=item.reviewConfirmedAt||new Date().toISOString();if(!selected.length||selected.some(candidate=>!String(candidate.zh||"").trim())){item.status="extracted";skipped+=1;return;}const category=target==="auto"?chapterForTopic(item.reviewTopic||inferTopic(`${item.title} ${item.content}`)):target;storeApprovedCandidates(item,selected,category,item.reviewLevel||state.settings.level||"A2");selectedKnowledgeIds.delete(item.id);approved+=1;});save();renderSources();renderCourses();$("bulkChineseStatus").textContent=`批量审核完成：${approved} 条已移入已入课资料${skipped?`；${skipped} 条仍需补充中文`:""}。`;toast(`批量审核完成：${approved} 条已加入课程${skipped?`，${skipped} 条待补充`:""}`);
+    const items=state.knowledgeItems.filter(item=>selectedKnowledgeIds.has(item.id)&&item.status!=="approved");if(!items.length)return;const automatic=$("bulkAutoTargets").checked;const shared=assignmentsFromKeys(bulkCourseAssignmentKeys);if(!automatic&&!shared.length){toast("请启用自动推荐，或至少选择一个目标课程章节");$("bulkCoursePicker").open=true;return;}let expressionCount=0;let missingCount=0;let targetCount=0;items.forEach(item=>{const candidates=(item.extracted?.length?item.extracted:extractKnowledgeCandidates(item)).filter(candidate=>candidate.selected!==false&&String(candidate.en||"").trim());expressionCount+=candidates.length;missingCount+=candidates.filter(candidate=>!String(candidate.zh||"").trim()).length;targetCount+=uniqueCourseAssignments([...(automatic?recommendCourseAssignments(item):[]),...shared]).length;});const duplicateCount=items.flatMap(item=>(item.extracted?.length?item.extracted:extractKnowledgeCandidates(item))).filter((candidate,index,list)=>candidate.en&&list.findIndex(entry=>normalize(entry.en)===normalize(candidate.en))<index).length;const preview=`批量生成预览\n\n资料：${items.length} 条\n候选表达：${expressionCount} 条\n目标章节关联：${targetCount} 个\n重复表达：${duplicateCount} 条（按资料保留，课程中按表达 ID 去重）\n缺少中文：${missingCount} 条\n\n缺少中文的资料将保留在待审核区，其余资料立即生成课程。`;if(!confirm(preview))return;let approved=0;let skipped=0;items.forEach(item=>{const refreshed=refreshBilingualCandidates(item);const candidates=(refreshed.candidates.length?refreshed.candidates:extractKnowledgeCandidates(item));const selected=candidates.filter(candidate=>candidate.selected!==false&&String(candidate.en||"").trim());item.extracted=candidates;item.reviewConfirmedAt=item.reviewConfirmedAt||new Date().toISOString();const assignments=uniqueCourseAssignments([...(automatic?recommendCourseAssignments(item):[]),...shared]);if(!selected.length||selected.some(candidate=>!String(candidate.zh||"").trim())||!assignments.length){item.status="extracted";skipped+=1;return;}storeApprovedCandidates(item,selected,assignments,item.reviewLevel||state.settings.level||"A2");selectedKnowledgeIds.delete(item.id);approved+=1;});save();renderSources();renderCourses();$("bulkChineseStatus").textContent=`批量生成完成：${approved} 条资料已入课${skipped?`；${skipped} 条仍需补充或审核`:""}。`;toast(`已批量生成 ${approved} 条资料课程${skipped?`，${skipped} 条待处理`:""}`);
   }
   async function bulkRecognizeChinese() {
     const items=state.knowledgeItems.filter(item=>selectedKnowledgeIds.has(item.id)&&item.status!=="approved");const status=$("bulkChineseStatus");const button=$("bulkRecognizeChinese");
@@ -718,7 +784,7 @@
     save();renderSources();button.textContent="批量识别中文";button.disabled=false;status.textContent=`完成：原文配对 ${pairedFromSource} 条，免费翻译 ${translated} 条${failed?`，${failed} 条仍需核对`:""}。`;toast(`批量中文识别完成：${pairedFromSource+translated} 条`);
   }
   function generateCourseFromKnowledge() {
-    const item=state.knowledgeItems.find(entry=>entry.id===reviewedKnowledgeId);if(!item)return;if(item.status!=="approved"){approveKnowledge();return;}const topic=item.reviewTopic||inferTopic(`${item.title} ${item.content}`);$("reviewDialog").close();selectedChapter=chapterForTopic(topic);route(`industry/${selectedChapter}`);toast(`已打开「${industryChapterName(selectedChapter)}」课程`);
+    const item=state.knowledgeItems.find(entry=>entry.id===reviewedKnowledgeId);if(!item)return;if(item.status!=="approved"){approveKnowledge();return;}const target=uniqueCourseAssignments(item.courseAssignments)[0];$("reviewDialog").close();if(target?.track==="roleplay")route(`roleplay/${target.chapter}`);else if(target)route(`industry/${target.chapter}/${target.unit}`);else route(`industry/${chapterForTopic(item.reviewTopic||inferTopic(`${item.title} ${item.content}`))}`);toast(target?`已打开「${courseAssignmentLabel(target)}」`:"已打开所属课程");
   }
   function parseCsv(text) {
     const rows=[];let row=[];let cell="";let quoted=false;
@@ -879,12 +945,18 @@
   $("extractKnowledge").onclick=extractKnowledge;
   $("translateKnowledge").onclick=translateMissingKnowledge;
   $("addCandidate").onclick=addCandidate;
+  $("recommendReviewTargets").onclick=recommendReviewCourseTargets;
   $("approveKnowledge").onclick=approveKnowledge;
   $("courseFromKnowledge").onclick=generateCourseFromKnowledge;
   $("selectVisibleKnowledge").onchange=event=>{visibleKnowledgeIds.forEach(id=>event.target.checked?selectedKnowledgeIds.add(id):selectedKnowledgeIds.delete(id));renderSources();};
   $("bulkRecognizeChinese").onclick=bulkRecognizeChinese;
+  $("bulkAutoTargets").onchange=renderBulkCourseTargets;
+  $("bulkSelectIndustry").onclick=()=>setBulkTrackSelection("industry",true);
+  $("bulkSelectRoleplay").onclick=()=>setBulkTrackSelection("roleplay",true);
+  $("bulkClearTargets").onclick=()=>{bulkCourseAssignmentKeys.clear();renderBulkCourseTargets();};
   $("bulkReviewKnowledge").onclick=bulkReviewKnowledge;
   $("bulkDeleteKnowledge").onclick=()=>deleteKnowledgeItems([...selectedKnowledgeIds]);
+  $("toggleApprovedKnowledge").onclick=()=>{state.settings.hideApprovedKnowledge=!state.settings.hideApprovedKnowledge;save();renderSources();};
   document.querySelectorAll("[data-library]").forEach(button=>button.onclick=()=>{libraryView=button.dataset.library;renderSources();});
   $("knowledgeSearch").oninput=renderSources;
   $("rateInput").value=state.settings.rate; $("rateOutput").textContent=`${state.settings.rate}×`; $("levelSelect").value=`${state.settings.level} ${state.settings.level==="A1"?"入门":state.settings.level==="A2"?"基础沟通":state.settings.level==="B1"?"独立沟通":"熟练沟通"}`;

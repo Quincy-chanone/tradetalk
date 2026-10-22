@@ -1,4 +1,4 @@
-const CACHE = "tradetalk-vitepress-v2.0.0";
+const CACHE = "tradetalk-vitepress-v2.1.0";
 const PHONEME_ASSETS = ["aa","ae","aw","b","ch","d","e","er","eth","f","g","h","i","ih","j","k","l","m","n","ng","o","p","r","s","schwa","sh","t","theta","u","uh","uh-short","v","w","y","z","zh"].map(name => `./audio/phonemes/${name}.ogg`);
 const ASSETS = ["./","./index.html","./tradetalk-shell.html","./styles.css","./content.js","./v1-1-data.js","./phonetics-data.js","./content/industry.json","./content/scenarios.json","./vendor/easy-speech/EasySpeech.iife.js","./vendor/easy-speech/LICENSE","./app.js","./manifest.json","./icon.svg","./templates/learning-material-template.md",...PHONEME_ASSETS];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())));
