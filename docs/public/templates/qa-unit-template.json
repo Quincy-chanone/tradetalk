@@ -1,0 +1,18 @@
+{
+  "schema": "tradetalk.qa.v1",
+  "units": [{
+    "id": "qa-product-topic-001",
+    "type": "qa-unit",
+    "productId": "spigot",
+    "chapterId": "customer-questions",
+    "knowledgePoint": "待填写知识点",
+    "customerQuestion": {"en": "Customer question", "zh": "客户问题"},
+    "variants": [{"level": "A2", "en": "Alternative question", "zh": "不同问法"}],
+    "answer": {"en": ["Short answer sentence one.", "Short answer sentence two."], "zh": ["简短回答第一句。", "简短回答第二句。"]},
+    "productKnowledge": "只填写已确认的产品知识；不确定参数请标记待确认。",
+    "keywords": ["keyword"],
+    "level": "A2",
+    "scenarioId": null,
+    "source": "可选来源"
+  }]
+}
