@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vitepress dev docs",
     "build": "vitepress build docs && node scripts/after-build.mjs",
-    "preview": "vitepress preview docs"
+    "preview": "vitepress preview docs",
+    "test:qa": "node scripts/qa-smoke.mjs"
   },
   "devDependencies": {
     "vitepress": "1.6.4",

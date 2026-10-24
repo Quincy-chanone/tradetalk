@@ -71,8 +71,14 @@
         </div>
       </section>
 
-      <div class="section-title"><div><span>01</span><h2>今日固定课程</h2></div><span id="dailyMix" class="count-badge">6 新学 · 2 到期 · 2 薄弱</span></div>
+      <div class="section-title"><div><span>01</span><h2>今日5组客户问答</h2></div><span id="qaDailyMix" class="count-badge">5 组</span></div>
+      <p id="qaEmpty" class="empty" hidden>问答内容不足，今天不补造内容。请从资料导入页导入经审核的问答单元。</p>
+      <div id="todayQaList" class="qa-list"></div>
+
+      <details class="legacy-course"><summary>旧单句课程（保留原入口与记录）</summary>
+      <div class="section-title"><div><span>LEGACY</span><h2>今日固定单句</h2></div><span id="dailyMix" class="count-badge">6 新学 · 2 到期 · 2 薄弱</span></div>
       <div id="todayPhraseList" class="phrase-list"></div>
+      </details>
 
       <article id="dailyCompletionReport" class="daily-completion-report" aria-live="polite"></article>
 
@@ -198,6 +204,11 @@
 中文：我们的玻璃夹适用于 8 至 12 毫米玻璃。
 
 每组资料之间空一行。</pre><div class="template-actions"><button id="copyMaterialTemplate" class="text-button" type="button">复制格式模板</button><a class="text-button" href="./templates/learning-material-template.md" download>下载 Markdown 模板</a></div></details>
+        </section>
+        <section class="material-import qa-import" aria-labelledby="qaImportTitle">
+          <div><span class="tag">STRUCTURED QA</span><h2 id="qaImportTitle">完整问答单元导入</h2><p>独立校验问法、答案和产品知识，不会压缩为普通文本。</p></div>
+          <div class="import-row"><label class="file-button">选择问答 JSON<input id="qaUnitFile" type="file" accept="application/json"></label><a class="secondary button-link" href="templates/qa-unit-template.json" download>下载 JSON 模板</a></div>
+          <p id="qaImportStatus" class="microcopy" role="status">导入前会检查必填字段和重复 ID，并显示确认预览。</p>
         </section>
 
         <section class="batch-import" aria-labelledby="batchTitle">

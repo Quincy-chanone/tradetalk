@@ -1,0 +1,60 @@
+{
+  "schema": "tradetalk.qa.v1",
+  "units": [
+    {
+      "id": "qa-spigot-post-001",
+      "type": "qa-unit",
+      "productId": "spigot",
+      "chapterId": "application",
+      "knowledgePoint": "产品名称与主要用途",
+      "customerQuestion": {"en": "What is this product, and where is it normally used?", "zh": "这是什么产品，通常用在哪里？"},
+      "variants": [
+        {"level": "A2", "en": "What is this product used for?", "zh": "这个产品有什么用途？"},
+        {"level": "B1", "en": "Could you explain the typical application of this stainless steel railing post?", "zh": "您能说明一下这款不锈钢栏杆立柱的典型用途吗？"}
+      ],
+      "answer": {"en": ["This is a stainless steel railing post.", "It supports a glass or handrail balustrade system.", "The final configuration depends on the project design."], "zh": ["这是一款不锈钢栏杆立柱。", "它用于支撑玻璃或扶手栏杆系统。", "最终配置取决于项目设计。"]},
+      "productKnowledge": "栏杆立柱是栏杆系统的支撑和连接部件。具体材质牌号、尺寸、承重和认证必须按项目资料确认。",
+      "keywords": ["stainless steel", "railing post", "balustrade", "project design"],
+      "level": "A2",
+      "scenarioId": "stainless-post-consultation",
+      "source": "样板课程；技术参数待项目确认"
+    },
+    {
+      "id": "qa-spigot-post-002", "type": "qa-unit", "productId": "spigot", "chapterId": "specifications", "knowledgePoint": "端柱、中间柱和转角柱",
+      "customerQuestion": {"en": "What is the difference between an end post, a middle post, and a corner post?", "zh": "端柱、中间柱和转角柱有什么区别？"},
+      "variants": [{"level":"A2","en":"Which post type do I need?","zh":"我需要哪种立柱？"},{"level":"B1","en":"How do I choose the post position for this layout?","zh":"这个布局应如何选择立柱位置？"}],
+      "answer": {"en":["An end post finishes a run, a middle post connects panels in a straight line, and a corner post changes direction.","Please share the layout so we can confirm each position."],"zh":["端柱用于一段栏杆的末端，中间柱连接直线上的玻璃，转角柱用于改变方向。","请提供布局图，以便确认每个位置。"]},
+      "productKnowledge":"柱型由栏杆走向和连接位置决定。孔位、夹具方向和角度需按图纸确认。", "keywords":["end post","middle post","corner post","layout"], "level":"A2", "scenarioId":"stainless-post-consultation", "source":"样板课程"
+    },
+    {
+      "id": "qa-spigot-post-003", "type": "qa-unit", "productId": "spigot", "chapterId": "installation", "knowledgePoint": "立柱与玻璃夹的配合",
+      "customerQuestion": {"en":"How does the post work with the glass clamps?","zh":"立柱如何与玻璃夹配合？"},
+      "variants":[{"level":"A2","en":"Are the glass clamps fitted to the post?","zh":"玻璃夹是安装在立柱上的吗？"},{"level":"B1","en":"How should the clamp arrangement match the glass panels?","zh":"玻璃夹配置应如何匹配玻璃面板？"}],
+      "answer":{"en":["The glass clamps are positioned on the post to hold the glass panels.","Their type and position must match the glass and the project layout.","Please confirm the glass details before production."],"zh":["玻璃夹安装在立柱相应位置，用于固定玻璃面板。","夹具类型和位置必须与玻璃及项目布局匹配。","生产前请确认玻璃资料。"]},
+      "productKnowledge":"玻璃夹与立柱共同形成玻璃固定点。玻璃厚度、开孔要求、夹具型号和垫片配置均为待确认参数。", "keywords":["glass clamp","glass panel","position","glass details"], "level":"B1", "scenarioId":"stainless-post-consultation", "source":"样板课程；参数待确认"
+    },
+    {
+      "id": "qa-spigot-post-004", "type": "qa-unit", "productId": "spigot", "chapterId": "installation", "knowledgePoint": "立柱与扶手及连接配件的配合",
+      "customerQuestion":{"en":"Can this post be connected to a handrail?","zh":"这款立柱可以连接扶手吗？"},
+      "variants":[{"level":"A2","en":"How is the handrail fixed to the post?","zh":"扶手如何固定在立柱上？"},{"level":"B1","en":"Which connectors are required between the posts and the handrail?","zh":"立柱与扶手之间需要哪些连接件？"}],
+      "answer":{"en":["The post can be configured with a handrail support and matching connectors.","The connector choice depends on the handrail profile and the layout.","We need the project drawing to confirm the parts."],"zh":["立柱可配置扶手托和配套连接件。","连接件的选择取决于扶手型材和布局。","需要项目图纸确认配件。"]},
+      "productKnowledge":"扶手托、转接头和连接件需与扶手形状及走向匹配。不得在未确认图纸时承诺具体配置。", "keywords":["handrail support","connector","profile","drawing"], "level":"B1", "scenarioId":"stainless-post-consultation", "source":"样板课程"
+    },
+    {
+      "id": "qa-spigot-post-005", "type": "qa-unit", "productId": "spigot", "chapterId": "specifications", "knowledgePoint": "根据玻璃安装方式选择立柱配置",
+      "customerQuestion":{"en":"How should we choose the post configuration for our glass installation?","zh":"我们的玻璃安装方式应如何选择立柱配置？"},
+      "variants":[{"level":"A2","en":"Which post configuration fits our glass?","zh":"哪种立柱配置适合我们的玻璃？"},{"level":"B1","en":"What information do you need to recommend the correct post configuration?","zh":"推荐正确的立柱配置需要哪些信息？"}],
+      "answer":{"en":["We first check the glass mounting method, panel layout, handrail requirement, and fixing surface.","Then we match the post positions and accessories.","Please send the drawing and glass details for confirmation."],"zh":["我们先确认玻璃固定方式、面板布局、扶手需求和安装基面。","再匹配立柱位置和配件。","请提供图纸和玻璃资料进行确认。"]},
+      "productKnowledge":"选型应基于完整系统信息，而不是只看单个立柱。所有尺寸、承重、固定方式和认证要求均需项目确认。", "keywords":["mounting method","panel layout","fixing surface","configuration"], "level":"B1", "scenarioId":"stainless-post-consultation", "source":"样板课程；技术参数待确认"
+    }
+  ],
+  "dialogues": [{
+    "id":"stainless-post-consultation", "title":"不锈钢栏杆立柱选型咨询", "productId":"spigot", "chapterId":"selection", "qaUnitIds":["qa-spigot-post-001","qa-spigot-post-002","qa-spigot-post-003","qa-spigot-post-004","qa-spigot-post-005"],
+    "turns":[
+      {"customer":"What is this product used for?","answer":"It is a stainless steel railing post used in a glass or handrail balustrade system."},
+      {"customer":"How do I choose the post type?","answer":"We use end, middle, or corner posts according to each position in the layout."},
+      {"customer":"Can it work with glass clamps and a handrail?","answer":"Yes. The clamp and handrail connector configuration must match the glass, handrail profile, and layout."},
+      {"customer":"What should I send you for confirmation?","answer":"Please send the drawing, glass details, mounting method, fixing surface, and handrail requirement."}
+    ]
+  }]
+}
