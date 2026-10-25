@@ -294,8 +294,8 @@
   }
   function runTask(name) {
     if (name === "complete") { toast("今天的开口训练已经完成，做得好！"); return; }
-    if (name === "listen") { route("practice"); toast("请点击“听标准发音”开始播放"); return; }
-    if (name === "speak") { route("practice"); setTimeout(()=>$("recordButton").scrollIntoView({behavior:"smooth",block:"center"}),100); return; }
+    if (name === "listen") { practiceItems=dailyPhrases();practiceIndex=0;renderPractice();route("practice"); toast("已进入今日课程口语训练，请点击“听标准发音”开始播放"); return; }
+    if (name === "speak") { if (!practiceItems.length) {practiceItems=dailyPhrases();practiceIndex=0;renderPractice();} route("practice"); setTimeout(()=>$("recordButton").scrollIntoView({behavior:"smooth",block:"center"}),100); return; }
     if (name === "save") { route("today"); setTimeout(()=>$("todayPhraseList").scrollIntoView({behavior:"smooth",block:"start"}),100); toast("点击短语中的生词，或点星标收藏整句。 "); return; }
     if (name === "dialog") { route("practice");resetDialog();setTimeout(()=>document.querySelector(".dialog-card").scrollIntoView({behavior:"smooth",block:"start"}),100);toast("完成全部客户问答后，自动进入第 5 步");return; }
     if (name === "review") { bookTab="review"; route("book"); renderBook(); }
