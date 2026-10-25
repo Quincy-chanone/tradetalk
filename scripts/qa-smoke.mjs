@@ -36,4 +36,13 @@ assert.equal(merged.reviews[id].rating,"hard");
 assert.equal(merged.reviews[id].reps,4,"复习次数不得回退");
 assert.equal(merged.reviews[id].errors,2,"错误次数不得回退");
 assert.equal(merged.syncConflicts.length,1,"评分冲突必须留下可见记录");
+// Manual recording rating: daily listening route, learner choice, and no automatic speech-score promotion.
+assert.ok(app.includes('if (name === "listen") { practiceItems=dailyPhrases();practiceIndex=0;renderPractice();route("practice");'), "今日学习的听标准发音应进入当天口语训练");
+assert.ok(app.includes('if (!qaRecordingTarget) { evaluateTranscript(); showManualRecordingRating(); }'), "普通跟读录音结束后必须展示自主评价");
+assert.ok(app.includes('data-record-rating="easy">学会</button>') && app.includes('data-record-rating="unsure">模糊</button>'), "必须提供学会和模糊两个选项");
+const transcriptSection=app.slice(app.indexOf("  function evaluateTranscript()"),app.indexOf("  // 录音后的掌握程度"));
+assert.ok(!transcriptSection.includes('schedule(item.id, 2') && !transcriptSection.includes('markWeakPhrase(item'), "识别匹配分数不得自动决定掌握程度");
+assert.ok(app.includes('hideManualRecordingRating(); transcript = "";'), "切换口语训练句子应隐藏上一句的评价面板");
+assert.ok(app.includes('recordingSelfRating:rating') && app.includes('recordingSelfRatedAt:'), "自主评价必须保存到学习记录");
+console.log("Recording rating static checks passed.");
 console.log("QA smoke tests passed: 5 units, scoped dialogue, unified reviews, primary QA report, template, and visible conflict-aware sync.");
