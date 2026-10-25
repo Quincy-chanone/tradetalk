@@ -381,7 +381,7 @@
     $("practiceStep").textContent = `${practiceIndex + 1} / ${practiceItems.length}`;
     $("practicePhrase").innerHTML = tokenizedPhrase(item);$("practicePhrase").querySelectorAll("[data-word]").forEach(button=>button.addEventListener("click",event=>{event.stopPropagation();openWord(button.dataset.word,item);}));
     $("practiceZh").textContent = item.zh;
-    $("feedbackPanel").hidden = true; $("recordingPlayback").hidden = true; setWeakReviewButton(); transcript = "";
+    $("feedbackPanel").hidden = true; $("recordingPlayback").hidden = true; setWeakReviewButton(); hideManualRecordingRating(); transcript = "";
     beginListeningFirst();
   }
   async function toggleRecording(target=null) {
@@ -426,7 +426,7 @@
     if(recordingUrl)URL.revokeObjectURL(recordingUrl);
     recordingUrl = URL.createObjectURL(blob); $("recordingPlayback").src = recordingUrl; $("recordingPlayback").hidden = false;
     if(qaRecordingTarget){const audio=qaRecordingTarget.querySelector("[data-recording]");audio.src=recordingUrl;audio.hidden=false;}
-    state.spoken += 1; markDay(); evaluateTranscript(); completeTask("speak"); save();
+    state.spoken += 1; markDay(); if (!qaRecordingTarget) { evaluateTranscript(); showManualRecordingRating(); } completeTask("speak"); save();
   }
   function normalize(text) { return String(text || "").toLowerCase().normalize("NFKC").replace(/[^\p{L}\p{N} ]/gu," ").replace(/\s+/g," ").trim(); }
   function wordMatch(expected, actual) {
@@ -459,10 +459,47 @@
     const detail = renderWordFeedback(item, transcript);
     $("feedbackTitle").textContent = "识别到的文字"; $("matchBadge").textContent = `文本匹配 ${score}%`;
     $("transcriptText").textContent = `“${transcript}”`;
-    $("feedbackTip").textContent = score >= 85 ? "大部分关键词已识别。现在回听录音，检查语调和连读。" : `先慢速分意群练习“${detail.missing.slice(0,3).join(" / ") || "目标短语"}”，再完整录一次。已自动加入明日复习；此百分比不是专业发音评分。`;
-    if (score < 85) { markWeakPhrase(item, "跟读识别未达标"); setWeakReviewButton("added"); }
-    else schedule(item.id, 2, false);
-    if (score >= 85 && !state.mastered.includes(item.id)) state.mastered.push(item.id);
+    $("feedbackTip").textContent = score >= 85 ? "大部分关键词已识别。请回听录音，再由你决定是否学会。" : `可以重点重练“${detail.missing.slice(0,3).join(" / ") || "目标短语"}”。此百分比只是文本匹配，不是发音评分；掌握程度由你决定。`;
+    setWeakReviewButton("manual");
+  }
+  // 录音后的掌握程度由学习者自主决定，语音识别只作参考，不自动判定学会。
+  function hideManualRecordingRating() {
+    const panel = $("manualRecordingRating");
+    if (panel) panel.hidden = true;
+  }
+  function showManualRecordingRating() {
+    const feedback = $("feedbackPanel");
+    let panel = $("manualRecordingRating");
+    if (!panel) {
+      panel = document.createElement("div");
+      panel.id = "manualRecordingRating";
+      panel.className = "daily-rating";
+      panel.setAttribute("aria-label", "自主评价跟读掌握程度");
+      panel.innerHTML = '<span>回听后，你自己决定：</span><button type="button" data-record-rating="easy">学会</button><button type="button" data-record-rating="unsure">模糊</button><small data-record-rating-status aria-live="polite"></small>';
+      feedback.appendChild(panel);
+      panel.querySelectorAll("[data-record-rating]").forEach(button => button.addEventListener("click", () => {
+        const item = practiceItems[practiceIndex];
+        if (!item) return;
+        const rating = button.dataset.recordRating;
+        const previous = state.itemProgress[item.id]?.recordingSelfRating;
+        if (previous === rating) { toast("已记录你的选择"); return; }
+        // 同一录音可以更正选择，但不重复增加复习次数。
+        if (previous) {
+          const old = state.reviews[item.id] || {};
+          const due = rating === "easy" ? addDay(3) : addDay(1);
+          state.reviews[item.id] = {...old,rating,stage:rating === "easy" ? Math.max(0,Number(old.stage)||0) : 0,due,last:day(),updatedAt:new Date().toISOString()};
+          state.itemProgress[item.id] = {...(state.itemProgress[item.id]||{}),status:"review",nextReview:due,lastRating:rating};
+        } else schedule(item.id,rating,false);
+        state.itemProgress[item.id] = {...(state.itemProgress[item.id]||{}),recordingSelfRating:rating,recordingSelfRatedAt:new Date().toISOString()};
+        learn(item.id,"recording-self-rating");
+        panel.querySelector("[data-record-rating-status]").textContent = rating === "easy" ? "✓ 你选择了学会" : "✓ 你选择了模糊，明日复习";
+        toast("已按你的选择保存掌握程度");
+        renderToday();renderBook();
+      }));
+    }
+    panel.hidden = false;
+    const rating = state.itemProgress[practiceItems[practiceIndex]?.id]?.recordingSelfRating;
+    panel.querySelector("[data-record-rating-status]").textContent = rating === "easy" ? "✓ 上次选择：学会（可修改）" : rating === "unsure" ? "✓ 上次选择：模糊（可修改）" : "仅由你决定，不自动评分";
   }
   function showUnavailable(message) { $("feedbackPanel").hidden = false; $("feedbackTitle").textContent = "功能提示"; $("matchBadge").textContent = "可继续听读"; $("transcriptText").textContent = message; $("wordComparison").replaceChildren(); $("recognizedCount").textContent="0 / 0"; $("keywordCount").textContent="0 / 0"; $("missingWords").textContent=""; $("feedbackTip").textContent = "你仍可使用标准发音、连续播放和情景对话完成练习。"; setWeakReviewButton("manual"); }
 
