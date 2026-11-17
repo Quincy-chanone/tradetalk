@@ -52,41 +52,32 @@
       <div class="daily-card">
         <div class="daily-copy">
           <span class="tag">TODAY'S MISSION</span>
-          <h2>从询盘开始一段对话</h2>
-          <p>听懂关键句，跟读录音，再把它用进真实客户沟通。</p>
+          <h2 id="dailyMissionTitle">产品短文、客户问答与跨产品复习</h2>
+          <p id="dailyMissionSummary">1 篇产品短文 · 4 轮关联问答 · 最多 2 条跨产品复习</p>
           <div class="progress-track"><span id="dailyProgressBar"></span></div>
-          <small id="dailyProgressText">今日 0 / 4 项完成</small>
+          <small id="dailyProgressText">今日 0 / 7 项完成</small>
         </div>
-        <button id="dailyContinue" class="primary round" type="button">开始训练 <span>→</span></button>
+        <button id="dailyContinue" class="primary round" type="button">开始今日短文 <span>→</span></button>
       </div>
 
-      <section class="daily-path" aria-labelledby="dailyPathTitle">
-        <div class="path-heading"><div><span class="tag">DAILY FLOW</span><h2 id="dailyPathTitle">今日开口路径</h2></div><strong id="dailyPathScore">0 / 5</strong></div>
-        <div id="dailyTaskList" class="task-list">
-          <button data-task="listen" type="button"><span class="task-icon">1</span><span><b>听标准发音</b><small>建立正确声音印象</small></span><i>→</i></button>
-          <button data-task="speak" type="button"><span class="task-icon">2</span><span><b>跟读并录音</b><small>回听自己的表达</small></span><i>→</i></button>
-          <button data-task="save" type="button"><span class="task-icon">3</span><span><b>收藏生词或短语</b><small>建立个人表达库</small></span><i>→</i></button>
-          <button data-task="dialog" type="button"><span class="task-icon">4</span><span><b>完成情景对话</b><small>把短语用进客户沟通</small></span><i>→</i></button>
-          <button data-task="review" type="button"><span class="task-icon">5</span><span><b>完成今日复习</b><small>优先巩固错误表达</small></span><i>→</i></button>
-        </div>
-      </section>
+      <div class="section-title"><div><span>01</span><h2>今日产品短文</h2></div><span id="articleCourseBadge" class="count-badge">新课</span></div>
+      <p id="articleEmpty" class="empty" hidden>今天没有可用的新课短文；系统不会把旧单句强行拼成短文。</p>
+      <div id="todayArticle"></div>
 
-      <div class="section-title"><div><span>01</span><h2>今日5组客户问答</h2></div><span id="qaDailyMix" class="count-badge">5 组</span></div>
-      <p id="qaEmpty" class="empty" hidden>问答内容不足，今天不补造内容。请从资料导入页导入经审核的问答单元。</p>
+      <div class="section-title"><div><span>02</span><h2>4 轮连贯客户问答</h2></div><span id="qaDailyMix" class="count-badge">4 轮</span></div>
+      <p id="qaEmpty" class="empty" hidden>关联问答不足，今天按实际数量显示，不使用未审核或未学习的技术知识补造。</p>
       <div id="todayQaList" class="qa-list"></div>
 
-      <details class="legacy-course"><summary>旧单句课程（保留原入口与记录）</summary>
-      <div class="section-title"><div><span>LEGACY</span><h2>今日固定单句</h2></div><span id="dailyMix" class="count-badge">6 新学 · 2 到期 · 2 薄弱</span></div>
-      <div id="todayPhraseList" class="phrase-list"></div>
+      <div class="section-title"><div><span>03</span><h2>跨产品复习</h2></div><span id="reviewDueBadge" class="count-badge">最多 2 条</span></div>
+      <p id="reviewEmpty" class="empty" hidden>暂无可用的已学旧内容；今天按实际数量显示，不用未学资料冒充复习。</p>
+      <div id="todayReviewList" class="daily-review-list"></div>
+
+      <details id="legacyToday" class="legacy-course" hidden><summary>继续今天原有的学习计划（已保留进度）</summary>
+        <p class="microcopy">检测到升级前已开始的今日计划，因此今天不换题；新安排从明天生效。</p>
+        <div id="todayPhraseList" class="phrase-list"></div>
       </details>
 
       <article id="dailyCompletionReport" class="daily-completion-report" aria-live="polite"></article>
-
-      <div class="section-title"><div><span>02</span><h2>今日复习</h2></div><span id="reviewDueBadge" class="count-badge">0 项</span></div>
-      <article class="review-preview">
-        <div><strong id="reviewHeadline">今天没有待复习内容</strong><p id="reviewSubline">学完短语后，系统会按错误次数安排复习。</p></div>
-        <button class="secondary" data-route="book" type="button">去复习</button>
-      </article>
     </section>
 
     <section id="practice" class="page" aria-labelledby="practiceTitle">
@@ -181,9 +172,9 @@
             <div class="knowledge-count-card"><strong id="knowledgeCount">0 条资料</strong><span>当前资料库</span></div>
             <ol class="knowledge-flow" aria-label="知识采集流程">
               <li><b>01</b><span>采集资料</span></li>
-              <li><b>02</b><span>提取表达</span></li>
-              <li><b>03</b><span>人工审核</span></li>
-              <li><b>04</b><span>加入课程</span></li>
+              <li><b>02</b><span>推荐分类</span></li>
+              <li><b>03</b><span>生成课程草稿</span></li>
+              <li><b>04</b><span>审核后入课</span></li>
             </ol>
           </div>
         </header>
@@ -256,10 +247,16 @@
               <div id="bulkCourseTargets" class="course-target-tree"></div>
             </div>
           </details>
-          <button id="bulkReviewKnowledge" class="secondary" type="button" disabled>批量生成课程</button>
+          <button id="bulkReviewKnowledge" class="secondary" type="button" disabled>提取表达并加入章节</button>
+          <button id="buildCourseDraft" class="primary" type="button" disabled>生成课程草稿</button>
           <button id="bulkDeleteKnowledge" class="danger-link" type="button" disabled>批量删除</button>
           <small id="bulkChineseStatus">先勾选资料，再自动推荐或批量选择多个课程章节；生成前会显示预览。</small>
         </div>
+        <section class="course-draft-archive" aria-labelledby="courseDraftListTitle">
+          <div class="approved-archive-heading"><div><span id="courseDraftListTitle">完整课程草稿</span><strong id="courseDraftCount">0 个</strong></div></div>
+          <p>草稿和审核记录保留在学习数据中；只有人工审核通过的课程才进入正式课程及后续今日学习。</p>
+          <div id="courseDraftList" class="course-draft-list"></div>
+        </section>
         <div id="sourceQueue" class="source-queue"></div>
         <section class="approved-archive" aria-labelledby="approvedKnowledgeTitle">
           <div class="approved-archive-heading"><div><span id="approvedKnowledgeTitle">已加入课程的资料</span><strong id="approvedKnowledgeCount">0 条</strong></div><button id="toggleApprovedKnowledge" class="secondary" type="button">隐藏已入课</button></div>
@@ -308,11 +305,21 @@
     <pre id="reviewContent" class="review-content"></pre>
     <div class="review-settings"><label>难度<select id="reviewLevel"><option>A1</option><option selected>A2</option><option>B1</option><option>B2</option></select></label><button id="recommendReviewTargets" class="secondary" type="button">重新自动推荐课程</button></div>
     <div class="review-course-picker"><div class="review-course-picker-heading"><strong>加入课程（可多选）</strong><span id="reviewCourseCount">已选择 0 个章节</span></div><div id="reviewCourseTargets" class="course-target-tree"></div></div>
-    <div class="review-actions"><button id="extractKnowledge" class="secondary" type="button">确认原文并自动提取</button><button id="translateKnowledge" class="secondary" type="button">翻译缺失中文</button><button id="addCandidate" class="text-button" type="button">＋ 手动添加</button></div>
+    <div class="review-actions"><button id="extractKnowledge" class="secondary" type="button">确认原文并提取表达</button><button id="translateKnowledge" class="secondary" type="button">翻译缺失中文</button><button id="addCandidate" class="text-button" type="button">＋ 手动添加</button></div>
     <p class="microcopy">免费翻译服务仅处理候选英文表达；译文需人工核对后再入课。</p>
     <div id="extractionEditor" class="extraction-editor"></div>
     <p id="reviewValidation" class="review-validation" role="alert" hidden></p>
-    <div class="review-actions final"><button id="approveKnowledge" class="primary" type="button" disabled>确认审核并生成课程</button><button id="courseFromKnowledge" class="secondary" type="button" disabled>查看已加入课程</button></div>
+    <div class="review-actions final"><button id="approveKnowledge" class="primary" type="button" disabled>确认表达并加入章节</button><button id="courseFromKnowledge" class="secondary" type="button" disabled>查看已加入章节</button></div>
+  </dialog>
+
+  <dialog id="courseBuilderDialog" class="review-dialog course-builder-dialog">
+    <button class="dialog-close" type="button" aria-label="关闭">×</button>
+    <span class="tag">COURSE DRAFT</span><h2>生成完整课程草稿</h2>
+    <p class="microcopy">资料先按“知识归属”和“内容形式”分别推荐。免费路径会生成可复制的资料包；返回结果必须经过结构校验和人工审核，技术真实性仍由你确认。</p>
+    <section class="course-builder-step"><h3>1. 推荐分类（可修改）</h3><div id="courseSourceClassifications" class="course-classification-list"></div></section>
+    <section class="course-builder-step"><h3>2. 免费复制生成</h3><div class="course-builder-actions"><button id="prepareCoursePrompt" class="primary" type="button">生成整理指令和资料包</button><button id="copyCoursePrompt" class="secondary" type="button" disabled>复制到 ChatGPT</button><button id="tryAiCourseDraft" class="secondary" type="button">尝试可选 AI 接口</button></div><p id="courseAiStatus" class="microcopy">免费路径始终可用；AI 接口是否可用会以实际响应为准，不会自动开通付费服务。</p><textarea id="coursePromptOutput" rows="10" readonly placeholder="生成后可复制到 ChatGPT"></textarea></section>
+    <section class="course-builder-step"><h3>3. 导入生成结果</h3><div class="import-row"><label class="file-button">选择课程 JSON / Markdown<input id="courseDraftFile" type="file" accept=".json,.md,application/json,text/markdown"></label><a class="secondary button-link" href="templates/course-draft-template.json" download>JSON 模板</a><a class="secondary button-link" href="templates/course-draft-template.md" download>Markdown 模板</a></div><textarea id="courseDraftImport" rows="8" placeholder="粘贴 ChatGPT 返回的 JSON，或包含 ```json 代码块的 Markdown"></textarea><button id="parseCourseDraft" class="secondary" type="button">校验并载入预览</button></section>
+    <section id="courseDraftEditorSection" class="course-builder-step" hidden><h3>4. 可编辑预览与人工审核</h3><div id="courseDraftEditor" class="course-draft-editor"></div><div id="courseDraftValidation" class="course-draft-validation" role="alert"></div><label class="truth-confirm"><input id="courseTruthConfirmed" type="checkbox"> 我已对照来源核对产品参数、适用条件及技术结论，并已解决或移除待确认内容。</label><div class="course-builder-actions"><button id="saveCourseDraft" class="secondary" type="button">保存草稿</button><button id="approveCourseDraft" class="primary" type="button" disabled>审核通过并加入课程</button></div><p class="microcopy">“审核通过”只确认结构和你的人工核对结果；系统不会把模型输出当作参数、认证或性能真实性证明。</p></section>
   </dialog>
 
   <dialog id="chapterDialog" class="review-dialog chapter-dialog">
@@ -330,7 +337,9 @@
   <script src="content.js"></script>
   <script src="v1-1-data.js"></script>
   <script src="phonetics-data.js"></script>
+  <script src="course-builder.js"></script>
   <script src="vendor/easy-speech/EasySpeech.iife.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
+
