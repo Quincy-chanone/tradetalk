@@ -1,7 +1,7 @@
 import { h, nextTick, onMounted, ref } from "vue";
 import "./wrapper.css";
 
-const assetVersion = "2.2.0-qa2";
+const assetVersion = "2.3.1-word-picker";
 
 const scripts = [
   "/content.js",
@@ -51,3 +51,4 @@ const Layout = {
 };
 
 export default { Layout };
+
