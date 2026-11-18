@@ -1,7 +1,7 @@
 import { h, nextTick, onMounted, ref } from "vue";
 import "./wrapper.css";
 
-const assetVersion = "2.4.1-course-builder-fix";
+const assetVersion = "2.4.2-mobile-article";
 
 const scripts = [
   "/content.js",
