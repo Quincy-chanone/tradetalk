@@ -48,11 +48,15 @@ assert.equal(builder.validate(template,{complete:true}).valid,true,"交付的 JS
 
 const app=fs.readFileSync(path.join(__dirname,"../docs/public/app.js"),"utf8");
 const theme=fs.readFileSync(path.join(__dirname,"../docs/.vitepress/theme/index.js"),"utf8");
+const styles=fs.readFileSync(path.join(__dirname,"../docs/public/styles.css"),"utf8");
 assert.match(app,/customCourseUnits/);
 assert.match(app,/dailyLearningPlans\[today\]/,"今日计划应按日期固定保存");
 assert.match(app,/status:\"needs-review\"/,"同 ID 实质更新应保留记录并标记重新复习");
 assert.match(app,/function approveCourse\(\)/);
 assert.match(theme,/course-builder\.js/,'VitePress 入口必须先载入课程构建运行时');
 assert.match(theme,/querySelector\("#courseBuilderDialog"\)/,'入口必须校验课程 shell，失败时回退未版本化 URL');
+assert.match(app,/article-sentence-list/,'短文分句必须有独立容器供手机横向排列');
+assert.match(styles,/grid-auto-flow:column/,'手机端短文分句必须横向排列');
+assert.match(styles,/scroll-snap-type:x mandatory/,'手机端短文分句应支持横向吸附滑动');
 console.log("Course builder smoke passed: classification, no-fabrication, package, parser, validation, update integration.");
 
