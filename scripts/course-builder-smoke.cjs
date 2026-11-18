@@ -56,6 +56,7 @@ assert.match(app,/function approveCourse\(\)/);
 assert.match(theme,/course-builder\.js/,'VitePress 入口必须先载入课程构建运行时');
 assert.match(theme,/querySelector\("#courseBuilderDialog"\)/,'入口必须校验课程 shell，失败时回退未版本化 URL');
 assert.match(app,/article-sentence-list/,'短文分句必须有独立容器供手机横向排列');
+assert.match(app,/tokenizedText\(text,true\)/,'短文可点单词必须使用行内 span 语义');
 assert.match(styles,/article-sentence>button\[data-sentence\]/,'分句样式必须只作用于播放按钮');
 assert.match(styles,/article-sentence \.word-token\{display:inline/,'手机端可点单词必须像问答文字一样行内排列');
 assert.doesNotMatch(styles,/article-sentence button\{/,'不得把所有可点单词误设为分句按钮');
