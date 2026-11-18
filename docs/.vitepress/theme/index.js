@@ -1,7 +1,7 @@
 import { h, nextTick, onMounted, ref } from "vue";
 import "./wrapper.css";
 
-const assetVersion = "2.4.2-mobile-article";
+const assetVersion = "2.4.3-mobile-article-text";
 
 const scripts = [
   "/content.js",
