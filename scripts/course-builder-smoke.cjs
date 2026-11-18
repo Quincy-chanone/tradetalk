@@ -56,7 +56,8 @@ assert.match(app,/function approveCourse\(\)/);
 assert.match(theme,/course-builder\.js/,'VitePress 入口必须先载入课程构建运行时');
 assert.match(theme,/querySelector\("#courseBuilderDialog"\)/,'入口必须校验课程 shell，失败时回退未版本化 URL');
 assert.match(app,/article-sentence-list/,'短文分句必须有独立容器供手机横向排列');
-assert.match(styles,/grid-auto-flow:column/,'手机端短文分句必须横向排列');
-assert.match(styles,/scroll-snap-type:x mandatory/,'手机端短文分句应支持横向吸附滑动');
+assert.match(styles,/article-sentence>button\[data-sentence\]/,'分句样式必须只作用于播放按钮');
+assert.match(styles,/article-sentence \.word-token\{display:inline/,'手机端可点单词必须像问答文字一样行内排列');
+assert.doesNotMatch(styles,/article-sentence button\{/,'不得把所有可点单词误设为分句按钮');
 console.log("Course builder smoke passed: classification, no-fabrication, package, parser, validation, update integration.");
 
