@@ -89,5 +89,6 @@ dialog{width:min(480px,calc(100% - 28px));border:0;border-radius:22px;padding:28
 @media(max-width:600px){.approved-course-card header{flex-direction:column}.approved-course-card header button{width:100%}}
 .course-import-diff{margin:12px 0;padding:12px;border:1px solid #e8c66f;border-radius:12px;background:#fff1d5;color:#694600}.course-import-diff p{margin:7px 0 0;line-height:1.55}.course-import-diff ul{margin:7px 0;padding-left:20px}.course-import-diff code{overflow-wrap:anywhere}.course-draft-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .lesson-phrase-preview{display:block;margin-top:6px;color:var(--green2);font:600 .7rem/1.45 Georgia,"Noto Serif SC",serif;white-space:normal}
+.source-analysis{margin-top:12px;padding:13px;border:1px solid #a8cbbf;border-radius:13px;background:#edf6f2;color:var(--green)}.source-analysis.has-warning{border-color:#e8c66f;background:#fff1d5;color:#694600}.source-analysis p{margin:6px 0;line-height:1.5}.source-analysis ul{margin:6px 0;padding-left:20px}.source-analysis li+li{margin-top:5px}.source-analysis small{display:block;margin-top:3px;color:inherit;opacity:.8}
 [data-theme="dark"] .course-import-diff{border-color:#725d2f;background:#40371f;color:#ffe1a0}
 @media(max-width:760px){.course-draft-actions{display:grid;width:100%}.course-draft-actions button{width:100%}}
