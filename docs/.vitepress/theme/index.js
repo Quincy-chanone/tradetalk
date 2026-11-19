@@ -1,7 +1,7 @@
 import { h, nextTick, onMounted, ref } from "vue";
 import "./wrapper.css";
 
-const assetVersion = "2.4.4-mobile-inline-words";
+const assetVersion = "2.4.5-course-update-diff";
 
 const scripts = [
   "/content.js",
@@ -56,4 +56,3 @@ const Layout = {
 };
 
 export default { Layout };
-
