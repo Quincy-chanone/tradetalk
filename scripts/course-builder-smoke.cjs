@@ -24,6 +24,16 @@ assert.equal(combined.unresolvedTechnicalIssues.length,0,"存在产品知识资�
 assert.match(builder.promptFor(combined),/source-q/);
 assert.match(builder.promptFor(combined),/4—6 句/);
 
+const duplicateA={id:"source-dup-a",title:"TEST duplicate A",content:"The shower hinge fits 8 to 10 mm glass."};
+const duplicateB={id:"source-dup-b",title:"TEST duplicate B",content:"The shower hinge fits 8 to 10 mm glass."};
+const conflict={id:"source-conflict",title:"TEST model condition",content:"This shower hinge model fits 12 to 14 mm glass."};
+const sourceAnalysis=builder.analyzeSources([duplicateA,duplicateB,conflict],[duplicateA,duplicateB,conflict].map(builder.classifySource));
+assert.equal(sourceAnalysis.duplicateGroups.length,1,"完全相同资料应识别为重复组");
+assert.ok(sourceAnalysis.potentialConflicts.some(item=>item.key==="thickness_range"),"不同厚度范围必须提示可能的适用条件冲突");
+const conflictPackage=builder.buildPackage([duplicateA,conflict],[builder.classifySource(duplicateA),builder.classifySource(conflict)]);
+assert.ok(conflictPackage.unresolvedTechnicalIssues.some(item=>item.type==="source-conflict"),"参数差异必须进入待核实技术内容");
+assert.match(builder.promptFor(conflictPackage),/potentialConflicts/,"免费生成资料包必须携带冲突分析");
+
 const valid=builder.normalizeCourse({
   id:"course-test-1",productId:"shower",productName:"Shower Hinges",title:"Selecting a Shower Hinge",primaryChapterId:"specifications",relatedChapterIds:["installation","specifications","installation"],level:"A2",
   knowledgePoints:[{id:"kp-1",title:"Selection basis",summary:"Selection depends on the confirmed door layout.",sourceIds:["source-k"],conditions:"After the layout is confirmed",unresolved:false}],
@@ -61,6 +71,7 @@ assert.match(app,/status:\"needs-review\"/,"同 ID 实质更新应保留记录�
 assert.match(app,/function approveCourse\(\)/);
 assert.match(app,/function exportCourseDraft\(course\)/,"单门课程应可导出并保留稳定 ID");
 assert.match(app,/TradeTalkCourseBuilder\.diffCourse/,'同 ID 导入必须显示更新差异');
+assert.match(app,/function renderCourseSourceAnalysis\(\)/,'课程生成前必须展示资料质量分析');
 assert.match(app,/function previewGeneratedCourse\(\)/,'首次打开课程生成器必须准备课程表达预览');
 assert.match(app,/推荐课程短语/,'短语本无收藏时必须提供明确标记的课程短语');
 assert.match(styles,/lesson-phrase-preview/,'课程课次必须直接显示短语预览');
