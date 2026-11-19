@@ -75,7 +75,17 @@
     if(complete&&(course.gaps.length||course.unresolvedTechnicalIssues.length||course.knowledgePoints.some(item=>item.unresolved)))errors.push("仍有待确认技术内容或课程缺口，解决或移除后才能正式入课");
     if(!course.sourceIds.length)warnings.push("课程未关联原始资料");return{course,errors:[...new Set(errors)],warnings:[...new Set(warnings)],valid:errors.length===0};
   }
-  const api={SCHEMA,CONTENT_TYPES,classifySource,buildPackage,promptFor,parse,normalizeCourse,validate,emptyCourse,stable};
+  function diffCourse(existing,incoming){
+    if(!existing)return{isNew:true,changed:true,significant:true,changedFields:[]};
+    const before=normalizeCourse(existing),after=normalizeCourse(incoming);
+    const fields=[
+      ["productId","产品系列",true],["title","课程主题",false],["primaryChapterId","主要章节",true],["relatedChapterIds","关联章节",true],["level","难度",false],
+      ["knowledgePoints","知识点",true],["article","产品短文",true],["coreTerms","核心术语",false],["expressions","常用表达",false],["knowledgeNote","产品知识说明",true],
+      ["freeTalkPrompts","脱稿提示",false],["qa","客户问答",true],["sourceIds","来源关联",false],["sourceSnapshot","来源快照",false],["gaps","课程缺口",true],["unresolvedTechnicalIssues","待核实技术内容",true]
+    ];
+    const changedFields=fields.filter(([field])=>JSON.stringify(before[field])!==JSON.stringify(after[field])).map(([field,label,significant])=>({field,label,significant}));
+    return{isNew:false,changed:changedFields.length>0,significant:changedFields.some(item=>item.significant),changedFields};
+  }
+  const api={SCHEMA,CONTENT_TYPES,classifySource,buildPackage,promptFor,parse,normalizeCourse,validate,diffCourse,emptyCourse,stable};
   root.TradeTalkCourseBuilder=api;if(typeof module!=="undefined"&&module.exports)module.exports=api;
 })(typeof window!=="undefined"?window:globalThis);
-
