@@ -33,6 +33,12 @@ const valid=builder.normalizeCourse({
 });
 assert.equal([...valid.relatedChapterIds].join(","),"installation,specifications","多章节关联应共享课程 ID 并去重，不复制课程");
 assert.equal(builder.validate(valid,{complete:true}).valid,true,"完整课程应通过结构校验");
+const unchangedDiff=builder.diffCourse(valid,structuredClone(valid));
+assert.equal(unchangedDiff.changed,false,"同 ID 同内容不应误报更新");
+const updatedCourse=structuredClone(valid);updatedCourse.article.en[0]="Updated sentence one.";
+const updateDiff=builder.diffCourse(valid,updatedCourse);
+assert.equal(updateDiff.significant,true,"短文变化应标记为实质更新");
+assert.ok(updateDiff.changedFields.some(item=>item.field==="article"),"更新预览应列出短文字段");
 
 const invalid=structuredClone(valid);invalid.qa[0].knowledgePointIds=["missing-kp"];invalid.article.zh.pop();invalid.qa[1].id=invalid.qa[0].id;
 const invalidResult=builder.validate(invalid,{complete:true});
@@ -53,6 +59,8 @@ assert.match(app,/customCourseUnits/);
 assert.match(app,/dailyLearningPlans\[today\]/,"今日计划应按日期固定保存");
 assert.match(app,/status:\"needs-review\"/,"同 ID 实质更新应保留记录并标记重新复习");
 assert.match(app,/function approveCourse\(\)/);
+assert.match(app,/function exportCourseDraft\(course\)/,"单门课程应可导出并保留稳定 ID");
+assert.match(app,/TradeTalkCourseBuilder\.diffCourse/,'同 ID 导入必须显示更新差异');
 assert.match(theme,/course-builder\.js/,'VitePress 入口必须先载入课程构建运行时');
 assert.match(theme,/querySelector\("#courseBuilderDialog"\)/,'入口必须校验课程 shell，失败时回退未版本化 URL');
 assert.match(app,/article-sentence-list/,'短文分句必须有独立容器供手机横向排列');
@@ -61,4 +69,3 @@ assert.match(styles,/article-sentence>button\[data-sentence\]/,'分句样式必�
 assert.match(styles,/article-sentence \.word-token\{display:inline/,'手机端可点单词必须像问答文字一样行内排列');
 assert.doesNotMatch(styles,/article-sentence button\{/,'不得把所有可点单词误设为分句按钮');
 console.log("Course builder smoke passed: classification, no-fabrication, package, parser, validation, update integration.");
-
