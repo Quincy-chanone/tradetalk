@@ -61,6 +61,9 @@ assert.match(app,/status:\"needs-review\"/,"同 ID 实质更新应保留记录�
 assert.match(app,/function approveCourse\(\)/);
 assert.match(app,/function exportCourseDraft\(course\)/,"单门课程应可导出并保留稳定 ID");
 assert.match(app,/TradeTalkCourseBuilder\.diffCourse/,'同 ID 导入必须显示更新差异');
+assert.match(app,/function previewGeneratedCourse\(\)/,'首次打开课程生成器必须准备课程表达预览');
+assert.match(app,/推荐课程短语/,'短语本无收藏时必须提供明确标记的课程短语');
+assert.match(styles,/lesson-phrase-preview/,'课程课次必须直接显示短语预览');
 assert.match(theme,/course-builder\.js/,'VitePress 入口必须先载入课程构建运行时');
 assert.match(theme,/querySelector\("#courseBuilderDialog"\)/,'入口必须校验课程 shell，失败时回退未版本化 URL');
 assert.match(app,/article-sentence-list/,'短文分句必须有独立容器供手机横向排列');
