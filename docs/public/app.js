@@ -73,6 +73,7 @@
   let courseBuilderSources = [];
   let courseClassifications = [];
   let editingCourseDraft = null;
+  let generatedPreviewCourse = null;
   let recorder = null;
   let recordingStream = null;
   let recordingChunks = [];
@@ -539,19 +540,20 @@
     let items = [];
     if (bookTab === "words") items = Object.entries(state.savedWords).map(([id,data]) => ({id:`word:${id}`,title:id,sub:wordData(id)[1],meta:`${wordData(id)[0]} · 来源：${data.source}`}));
     if (bookTab === "vocabulary") { const query=normalize($("vocabularySearch").value);items=V11.vocabulary.filter(item=>!query||normalize(`${item.word} ${item.meaning} ${item.categoryZh}`).includes(query)).map(item=>({id:`vocab:${item.word}`,title:item.word,sub:item.meaning,meta:`${item.categoryZh} · ${item.level}`,sourcePhraseId:item.sourcePhraseId})); }
-    if (bookTab === "phrases") items = Object.entries(state.savedPhrases).map(([id,data]) => { const item=phraseById(id); return item ? {id:item.id,title:item.en,sub:item.zh,meta:data.weak ? `薄弱表达 · ${data.reason || "自动复习"} · 错误 ${state.reviews[id]?.errors || 0} 次` : `${item.scene} · ${C.topics[item.topic].zh}`} : null; }).filter(Boolean);
+    if (bookTab === "phrases") {items = Object.entries(state.savedPhrases).map(([id,data]) => { const item=phraseById(id); return item ? {id:item.id,phraseId:item.id,title:item.en,sub:item.zh,meta:data.weak ? `薄弱表达 · ${data.reason || "自动复习"} · 错误 ${state.reviews[id]?.errors || 0} 次` : `${item.scene} · ${C.topics[item.topic]?.zh||item.categoryZh||"课程表达"}`} : null; }).filter(Boolean);if(!items.length){const rank={A1:1,A2:2,B1:3,B2:4},target=rank[state.settings.level]||2;items=allPhrases().filter(item=>(rank[item.level]||1)<=target).slice(0,8).map(item=>({id:`recommend:${item.id}`,phraseId:item.id,title:item.en,sub:item.zh,meta:`推荐课程短语 · ${item.scene} · ${item.level}`,recommended:true}));}}
     if (bookTab === "review") items = dueReviews().map(id => id.startsWith("word:") ? {id,title:id.slice(5),sub:wordData(id.slice(5))[1],meta:"今日到期 · 生词"} : (() => { const qa=dailyQaById(id)||qaById(id);if(qa){const pair=questionWithAnswer(qa);return{id,title:pair.question.en,sub:pair.answer.zh.join(" "),meta:`问答单元 · ${qa.knowledgePoint} · 错误 ${state.reviews[id]?.errors||0} 次`};}const lesson=dailyLessonById(id);if(lesson)return{id,title:lesson.title,sub:lesson.article.zh.join(" "),meta:`产品短文 · ${lesson.productName}`};const item=phraseById(id); return item ? {id,title:item.en,sub:item.zh,meta:`今日到期 · 错误 ${state.reviews[id]?.errors || 0} 次`} : null; })()).filter(Boolean);
     $("savedCount").textContent = `${Object.keys(state.savedWords).length + Object.keys(state.savedPhrases).length} 条收藏`;
     if (!items.length) { root.innerHTML = `<div class="empty"><strong>${bookTab === "review" ? "今天已复习完成" : "这里还没有内容"}</strong>${bookTab === "review" ? "明天再来巩固，或继续学习新短语。" : "在短语里点击生词，或点击星标收藏短语。"}</div>`; return; }
     items.forEach(item => {
       const article = document.createElement("article"); article.className = "library-item";
       const vocabSaved=bookTab==="vocabulary"&&state.savedWords[item.title];
-      article.innerHTML = `<div><h3>${tokenizedText(item.title)}</h3><p>${esc(item.sub)}</p><p>${esc(item.meta)}</p></div><div class="library-actions"><button data-speak type="button">▶</button>${bookTab === "review" ? '<button data-hard type="button">再学</button><button data-good type="button">会了</button>' : bookTab==="vocabulary"?`<button class="vocab-save" data-vocab-save type="button">${vocabSaved?"✓ 已收藏":"＋ 收藏"}</button>`:'<button class="delete" data-delete type="button">删除</button>'}</div>`;
+      article.innerHTML = `<div><h3>${tokenizedText(item.title)}</h3><p>${esc(item.sub)}</p><p>${esc(item.meta)}</p></div><div class="library-actions"><button data-speak type="button">▶</button>${bookTab === "review" ? '<button data-hard type="button">再学</button><button data-good type="button">会了</button>' : bookTab==="vocabulary"?`<button class="vocab-save" data-vocab-save type="button">${vocabSaved?"✓ 已收藏":"＋ 收藏"}</button>`:item.recommended?'<button data-save-recommended type="button">☆ 收藏</button>':'<button class="delete" data-delete type="button">删除</button>'}</div>`;
       article.querySelector("[data-speak]").onclick = () => speak(item.title);
       article.querySelector("[data-hard]")?.addEventListener("click", () => reviewItem(item.id,0));
       article.querySelector("[data-good]")?.addEventListener("click", () => reviewItem(item.id,2));
       article.querySelector("[data-delete]")?.addEventListener("click", () => deleteSaved(item.id));
       article.querySelector("[data-vocab-save]")?.addEventListener("click", event => {const phrase=phraseById(item.sourcePhraseId);state.savedWords[item.title]={savedAt:new Date().toISOString(),phraseId:item.sourcePhraseId,source:phrase?.en||item.meta};schedule(`word:${item.title}`,1,false);save();event.currentTarget.textContent="✓ 已收藏";renderStats();toast("已加入个人生词本");});
+      article.querySelector("[data-save-recommended]")?.addEventListener("click",()=>{const phrase=phraseById(item.phraseId);if(!phrase)return;state.savedPhrases[phrase.id]={savedAt:new Date().toISOString(),source:phrase.scene};schedule(phrase.id,1,false);save();renderBook();toast("推荐短语已加入短语本");});
       bindWordTokens(article,{id:item.id,en:item.title});
       root.appendChild(article);
     });
@@ -650,7 +652,7 @@
   }
   function renderLessonCatalog(root,items,label) {
     const catalog=document.createElement("div");catalog.className="lesson-catalog";root.appendChild(catalog);
-    for(let index=0;index<Math.ceil(items.length/8);index+=1){const lesson=items.slice(index*8,index*8+8);const learned=lesson.filter(item=>state.learned.includes(item.id)).length;const button=document.createElement("button");button.className="lesson-tile";button.type="button";button.innerHTML=`<span class="lesson-tile-icon">${String(index+1).padStart(2,"0")}</span><span><strong>第 ${index+1} 课</strong><small>${lesson.length} 条表达 · 已学 ${learned} 条 · 听音、跟读、应用</small></span><i>→</i>`;button.onclick=()=>startCourseItems(items,index,label);catalog.appendChild(button);}
+    for(let index=0;index<Math.ceil(items.length/8);index+=1){const lesson=items.slice(index*8,index*8+8);const learned=lesson.filter(item=>state.learned.includes(item.id)).length;const button=document.createElement("button");button.className="lesson-tile";button.type="button";button.innerHTML=`<span class="lesson-tile-icon">${String(index+1).padStart(2,"0")}</span><span><strong>第 ${index+1} 课</strong><small>${lesson.length} 条表达 · 已学 ${learned} 条 · 听音、跟读、应用</small><span class="lesson-phrase-preview">${lesson.slice(0,2).map(item=>esc(item.en)).join(" · ")}</span></span><i>→</i>`;button.onclick=()=>startCourseItems(items,index,label);catalog.appendChild(button);}
     if(!catalog.children.length)catalog.innerHTML='<div class="source-empty">当前难度还没有课程内容，请切换难度或在课程后台补充。</div>';
   }
   function renderQaCourse(root,units){if(!units.length)return;const title=document.createElement("div");title.className="section-title";title.innerHTML=`<div><span>QA UNITS</span><h2>客户问答单元</h2></div><small>${units.length} 组 · 共用单元进度</small>`;root.appendChild(title);const list=document.createElement("div");list.className="qa-course-list";units.forEach(unit=>{const card=document.createElement("article");const question=qaQuestion(unit);card.className="qa-course-card";card.innerHTML=`<small>${esc(unit.knowledgePoint)} · ${esc(unit.level)}</small><h3>${tokenizedText(question.en)}</h3><p>${esc(question.zh)}</p><details><summary>产品知识与参考回答</summary><p>${esc(unit.productKnowledge)}</p><p><strong>${tokenizedText(unit.answer.en.join(" "))}</strong></p><p>${esc(unit.answer.zh.join(" "))}</p></details><button data-play-question type="button">▶ 播放客户问题</button>`;card.querySelector("[data-play-question]").onclick=()=>speak(question.en);bindWordTokens(card,{id:unit.id,en:`${question.en} ${unit.answer.en.join(" ")}`});list.appendChild(card);});root.appendChild(list);}
@@ -928,8 +930,7 @@
     catch(error){const detail=error.name==="AbortError"?"请求超过 40 秒":error.message==="Failed to fetch"?"手机未连接到采集接口，请刷新 App 后重试":error.message;status.textContent=`无法自动采集：${detail}。如页面需要登录、验证码或由 JavaScript 动态加载，请复制页面文字后批量采集。`;}
     finally{clearTimeout(timer);$("collectWebsite").disabled=false;}
   }
-  function generateCourse() {
-    const topic = $("generatorTopic").value; const level = $("generatorLevel").value;
+  function selectGeneratedCourse(topic,level) {
     const rank={A1:1,A2:2,B1:3,B2:4};const selected=[];const add=items=>items.forEach(item=>{if(selected.length<5&&!selected.some(x=>x.id===item.id))selected.push(item);});
     const eligible=item=>(rank[item.level]||1)<=(rank[level]||2);
     const phrases=allPhrases();
@@ -939,16 +940,20 @@
     add(phrases.filter(item=>item.topic===topic));
     add(phrases.filter(item=>item.scene==="基础英语"&&eligible(item)));
     add(phrases.filter(eligible));
-    state.generatedCourse={ids:selected.map(item=>item.id),topic,level,createdAt:new Date().toISOString()};save();renderGeneratedCourse();renderCourses();toast("微课程已生成并保存");
+    return{ids:selected.map(item=>item.id),topic,level,createdAt:null};
   }
-  function renderGeneratedCourse() {
-    const course=state.generatedCourse;const items=course.ids.map(phraseById).filter(Boolean);const topic=C.topics[course.topic];
+  function previewGeneratedCourse() { generatedPreviewCourse=selectGeneratedCourse($("generatorTopic").value,$("generatorLevel").value);renderGeneratedCourse(generatedPreviewCourse,true); }
+  function generateCourse() {
+    state.generatedCourse={...selectGeneratedCourse($("generatorTopic").value,$("generatorLevel").value),createdAt:new Date().toISOString()};generatedPreviewCourse=null;save();renderGeneratedCourse();renderCourses();toast("微课程已生成并保存");
+  }
+  function renderGeneratedCourse(course=state.generatedCourse,preview=false) {
+    const items=(course.ids||[]).map(phraseById).filter(Boolean);const topic=C.topics[course.topic];
     $("generatedPreview").replaceChildren(...items.map((item,index)=>{const div=document.createElement("div");div.className="generated-card";div.innerHTML=`<p><strong>${index+1}. ${tokenizedText(item.en)}</strong></p><small>${esc(item.zh)} · ${esc(item.level)}${state.savedPhrases[item.id]?.weak?" · 薄弱项优先":""}</small>`;bindWordTokens(div,item);return div;}));
-    $("generatedCourseStatus").textContent=items.length?`${topic?.zh || "个性主题"} · ${course.level} · 已保存，可随时继续`:"";
+    $("generatedCourseStatus").textContent=items.length?`${topic?.zh || "个性主题"} · ${course.level} · ${preview?"已准备 5 条表达，开始后保存进度":"已保存，可随时继续"}`:"没有可用表达，请切换主题或难度";
     $("startGeneratedCourse").hidden=!items.length;
   }
   function startGeneratedCourse() {
-    const course=state.generatedCourse;const items=course.ids.map(phraseById).filter(Boolean);if(!items.length){toast("请先生成课程");return;}
+    const course=generatedPreviewCourse||state.generatedCourse;const items=(course.ids||[]).map(phraseById).filter(Boolean);if(!items.length){toast("当前主题没有可用表达，请切换主题或难度");return;}if(generatedPreviewCourse){state.generatedCourse={...generatedPreviewCourse,createdAt:new Date().toISOString()};generatedPreviewCourse=null;save();}
     practiceItems=items;practiceIndex=0;dialogScenario=C.dialogs[course.topic]?course.topic:"shower";$("dialogScenario").value=dialogScenario;renderPractice();resetDialog();if($("generatorDialog").open)$("generatorDialog").close();route("practice");toast("已开始个性微课程");
   }
 
@@ -1059,7 +1064,7 @@
   $("backToTracks").onclick=()=>{if(selectedTrack==="industry"&&selectedUnit)route(`industry/${selectedChapter}`);else route(selectedTrack==="roleplay"?"roleplay":"industry");};
   $("openAddChapter").onclick=()=>{$("chapterValidation").hidden=true;$("chapterDialog").showModal();};$("saveChapter").onclick=addProductChapter;
   $("speakWord").onclick = () => selectedWord && speak(selectedWord.word); $("saveWord").onclick = saveSelectedWord;
-  $("openGenerator").onclick = () => { if(state.generatedCourse.topic)$("generatorTopic").value=state.generatedCourse.topic;if(state.generatedCourse.level)$("generatorLevel").value=state.generatedCourse.level;renderGeneratedCourse();$("generatorDialog").showModal(); }; $("generateCourse").onclick = generateCourse; $("startGeneratedCourse").onclick=startGeneratedCourse;
+  $("openGenerator").onclick = () => { if(state.generatedCourse.topic)$("generatorTopic").value=state.generatedCourse.topic;if(state.generatedCourse.level)$("generatorLevel").value=state.generatedCourse.level;const savedItems=(state.generatedCourse.ids||[]).map(phraseById).filter(Boolean);if(savedItems.length){generatedPreviewCourse=null;renderGeneratedCourse();}else previewGeneratedCourse();$("generatorDialog").showModal(); }; $("generatorTopic").onchange=previewGeneratedCourse;$("generatorLevel").onchange=previewGeneratedCourse;$("generateCourse").onclick = generateCourse; $("startGeneratedCourse").onclick=startGeneratedCourse;
   $("sourceForm").onsubmit = event => { event.preventDefault(); const title=$("sourceName").value.trim();const content=$("sourceExcerpt").value.trim();const rawUrl=$("sourceUrl").value.trim();if(rawUrl&&!safeUrl(rawUrl)){toast("请输入有效的来源网址");return;}const count=commitKnowledge([{library:$("sourceLibrary").value,title,content,sourceUrl:rawUrl,origin:"manual"}]);event.target.reset();toast("已保存，等待审核");if(count)openKnowledgeReview(state.knowledgeItems[0].id); };
   $("materialFile").onchange=event=>importMaterialFile(event.target.files[0]);
   $("qaUnitFile").onchange=event=>event.target.files[0]&&importQaUnits(event.target.files[0]);
