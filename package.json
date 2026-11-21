@@ -1,13 +1,14 @@
 {
   "name": "tradetalk-vitepress",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.4.7",
   "type": "module",
   "scripts": {
     "dev": "vitepress dev docs",
     "build": "vitepress build docs && node scripts/after-build.mjs",
     "preview": "vitepress preview docs",
-    "test:qa": "node scripts/qa-smoke.mjs"
+    "test:qa": "node scripts/qa-smoke.mjs",
+    "test:course": "node scripts/course-builder-smoke.cjs"
   },
   "devDependencies": {
     "vitepress": "1.6.4",
