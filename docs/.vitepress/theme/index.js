@@ -1,7 +1,7 @@
 import { h, nextTick, onMounted, ref } from "vue";
 import "./wrapper.css";
 
-const assetVersion = "2.4.7-source-quality";
+const assetVersion = "2.4.8-material-import";
 
 const scripts = [
   "/content.js",
