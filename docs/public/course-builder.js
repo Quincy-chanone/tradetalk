@@ -44,6 +44,7 @@
     const hasQuestion=/\?|？|^(?:客户问题|question)\s*[:：]/im.test(value),hasAnswer=/^(?:参考回答|回答|answer)\s*[:：]/im.test(value);
     if(hasQuestion&&hasAnswer)return"complete_qa";
     if(hasQuestion)return"customer_question";
+    if(/\p{Script=Han}/u.test(value)&&!/[A-Za-z]/.test(value))return"product_knowledge";
     if(lines.length===1&&value.length<=45&&!/[.!。！]/.test(value))return/\s/.test(value)?"phrase":"term";
     if(/[A-Za-z]/.test(value)&&/[.!]/.test(value))return"intro";
     if(/[一-龥]/.test(value))return"product_knowledge";
