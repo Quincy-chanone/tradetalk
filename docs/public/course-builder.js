@@ -69,14 +69,96 @@
     const primary=classifications.find(item=>item.productId&&item.chapterId)||classifications.find(item=>item.productId)||classifications[0]||{};
     const course=emptyCourse({productId:options.productId||primary.productId,productName:options.productName||primary.productName,chapterId:options.chapterId||primary.chapterId,title:options.title,level:options.level,sourceIds:sources.map(item=>item.id),sourceSnapshot:sources.map(item=>({id:item.id,title:item.title,content:item.content,sourceUrl:item.sourceUrl||"",classification:byId.get(item.id)||classifySource(item)}))});
     course.sourceAnalysis=analyzeSources(sources,classifications);
+    course.evidenceVersion=1;
+    course.articleKnowledgePointIds=[];
+    course.knowledgeNotePointIds=[];
+    course.sourceOutline=course.sourceSnapshot
+      .filter(source=>isEvidenceSource(source))
+      .map(source=>({sourceId:source.id,chapter:source.classification?.chapterName||"",excerpt:clean(source.content).slice(0,240)}));
     const questions=sources.filter(item=>(byId.get(item.id)||classifySource(item)).contentType==="customer_question");
     const basis=sources.filter(item=>!["customer_question","term","phrase"].includes((byId.get(item.id)||classifySource(item)).contentType));
     if(questions.length&&!basis.length){course.gaps.push("客户问题缺少已确认的产品知识依据；补充资料后才能生成确定的技术答案");course.unresolvedTechnicalIssues.push(...questions.map(item=>({sourceId:item.id,question:clean(item.content),issue:"缺少产品知识依据"})));}
     if(course.sourceAnalysis.potentialConflicts.length){course.gaps.push("所选资料存在可能的参数或归属差异；核实型号、材质和适用条件后再生成正式内容");course.unresolvedTechnicalIssues.push(...course.sourceAnalysis.potentialConflicts.map(item=>({type:"source-conflict",key:item.key,sourceIds:item.sourceIds,values:item.values,issue:item.reason})));}
     return course;
   }
+  function isEvidenceSource(source){
+    const questionOnly=contentType(source.content)==="customer_question";
+    return Boolean(clean(source.content))&&!questionOnly&&source.classification?.contentType!=="customer_question";
+  }
+  function usePreparedSources(draft,packageCourse){
+    if(!packageCourse)return draft;
+    if(draft.id&&draft.id!==packageCourse.id)throw new Error("课程 ID 与当前资料包不一致，请导入对应结果。");
+    const {id,sourceIds,sourceSnapshot,sourceAnalysis,sourceOutline}=packageCourse;
+    return {...draft,id,sourceIds,sourceSnapshot,sourceAnalysis,sourceOutline,evidenceVersion:1};
+  }
+  function validateEvidence(course,errors){
+    if(course.evidenceVersion!==1)return;
+    const normalizeQuote=value=>clean(value).normalize("NFKC").replace(/\s+/g," ");
+    const sources=new Map((Array.isArray(course.sourceSnapshot)?course.sourceSnapshot:[])
+      .filter(source=>source?.id&&isEvidenceSource(source)).map(source=>[source.id,source]));
+    const points=new Set(course.knowledgePoints.map(point=>point.id));
+    const factsByPoint=new Map();
+    for(const point of course.knowledgePoints){
+      const citations=Array.isArray(point.evidence)?point.evidence:[];
+      const supported=new Set();
+      const facts=new Set();
+      for(const citation of citations){
+        const source=sources.get(citation?.sourceId),quote=normalizeQuote(citation?.quote);
+        if(!source||!quote||!point.sourceIds.includes(source.id)||!normalizeQuote(source.content).includes(quote)){
+          errors.push("知识点 "+point.id+" 的原文引证无法核对。");
+        }else{
+          supported.add(source.id);
+          evidenceFacts(quote).forEach(({key,value})=>facts.add(key+":"+value));
+        }
+      }
+      if(!supported.size||point.sourceIds.some(id=>!supported.has(id)))errors.push("知识点 "+point.id+" 的每个来源都需要原文引证。");
+      factsByPoint.set(point.id,facts);
+    }
+    const checkFacts=(text,ids,label)=>{
+      if(!Array.isArray(ids))return;
+      const sourceFacts=new Set(ids.flatMap(id=>[...(factsByPoint.get(id)||[])]));
+      for(const fact of evidenceFacts(text)){
+        if(!sourceFacts.has(fact.key+":"+fact.value))errors.push(label+"的"+fact.label+" "+fact.value+" 未在关联引证中找到。");
+      }
+    };
+    const articleLinks=course.articleKnowledgePointIds, noteLinks=course.knowledgeNotePointIds??[];
+    const covered=new Set();
+    const addLinks=(ids,label)=>{
+      if(!Array.isArray(ids)||!ids.length||ids.some(id=>!points.has(id)))errors.push(label+"必须关联有效知识点。");
+      else ids.forEach(id=>covered.add(id));
+    };
+    if(!Array.isArray(articleLinks)||articleLinks.length!==course.article.en.length){
+      errors.push("短文需要逐句填写知识点关联。");
+    }else articleLinks.forEach((ids,index)=>{
+      const label="短文第 "+(index+1)+" 句";
+      addLinks(ids,label);
+      checkFacts([course.article.en[index],course.article.zh[index]].join("\n"),ids,label);
+    });
+    if(Array.isArray(noteLinks)&&noteLinks.length&&clean(course.knowledgeNote)){
+      addLinks(noteLinks,"产品知识说明");
+      checkFacts(course.knowledgeNote,noteLinks,"产品知识说明");
+    }
+    else if(!Array.isArray(noteLinks)||noteLinks.length)errors.push("知识说明的关联需要对应的说明正文。");
+    const seenQuestions=new Set();
+    for(const [index,turn] of course.qa.entries()){
+      const question=turn.question.en.toLowerCase().replace(/[^\p{L}\p{N}]+/gu," ").trim();
+      if(question&&seenQuestions.has(question))errors.push("第 "+(index+1)+" 轮客户问题与前面重复。");
+      seenQuestions.add(question);
+      if(turn.knowledgePointIds.some(id=>!covered.has(id)))errors.push("第 "+(index+1)+" 轮问答引用了短文或知识说明尚未覆盖的知识点。");
+      for(const answer of [turn.answer,...turn.variants.map(variant=>variant.answer).filter(Boolean)]){
+        checkFacts([...answer.en,...answer.zh].join("\n"),turn.knowledgePointIds,"第 "+(index+1)+" 轮回答");
+      }
+    }
+  }
+  function evidenceFacts(text){
+    const facts=parameterFacts({content:text});
+    for(const match of text.matchAll(/(?:^|[^\p{L}\p{N}.])(\d+(?:\.\d+)?)\s*(?:mm\b|毫米)/giu)){
+      facts.push({key:"millimetres",label:"毫米规格",value:Number(match[1])+"mm"});
+    }
+    return facts;
+  }
   function promptFor(course){
-    return `你是外贸产品英语课程编辑。请严格依据下面资料生成课程草稿，不得编造参数、认证、性能或适配范围。\n\n规则：\n1. 先整理知识点及来源、适用条件和待核实项。\n2. 输出 4—6 句连贯英文产品短文，每句配中文。\n3. 输出 4 轮不重复的关联客户问答；每轮含问题/中文、回答/中文、同意图不同问法/中文、回答要点、知识点 ID、必要情景条件。\n4. 问答使用的技术知识必须出现在知识点、短文或知识说明中。\n5. 不同问法若改变意图或范围，写入 variants[].answer 对应回答，不能共用不适用答案。\n6. 只有问题、没有答案依据时保留问题，设置 missingBasis=true，并加入 unresolvedTechnicalIssues，不生成确定答案。\n7. 资料不足时保留 gaps，输出不完整草稿，不凑句数或问答数。\n8. 保留 sourceAnalysis；其中 potentialConflicts 未经来源或人工确认，不得自行选择一个参数当作通用结论。\n9. 仅返回一个 JSON 对象，schema 必须是 ${SCHEMA}；保留已有 id、sourceIds、sourceSnapshot。\n\n字段结构示例：\n${JSON.stringify({...course,knowledgePoints:[{id:"kp-1",title:"知识点",summary:"仅写已确认事实",sourceIds:course.sourceIds.slice(0,1),conditions:"适用条件",unresolved:false}],article:{en:["Sentence one."],zh:["第一句。"]},coreTerms:[{en:"term",zh:"术语"}],expressions:[{en:"useful expression",zh:"常用表达"}],freeTalkPrompts:["中文脱稿提示"],qa:[{id:`${course.id}-qa-1`,question:{en:"Customer question?",zh:"客户问题？"},variants:[{en:"Natural alternative?",zh:"自然问法？"}],answer:{en:["Reference answer."],zh:["参考回答。"]},answerPoints:["回答要点"],knowledgePointIds:["kp-1"],conditions:"情景条件",missingBasis:false}],gaps:[],unresolvedTechnicalIssues:[]},null,2)}\n\n资料质量分析：\n${JSON.stringify(course.sourceAnalysis,null,2)}\n\n原始资料包：\n${JSON.stringify(course.sourceSnapshot,null,2)}`;
+    return `你是外贸产品英语课程编辑。请严格依据下面资料生成课程草稿，不得编造参数、认证、性能或适配范围。\n\n规则：\n1. 先从资料提取 2—3 个相关知识点，写明型号和适用条件。每个知识点填写 evidence，逐字摘录支持该点的原文，逐个引用 sourceIds。客户问题本身不作为技术答案依据。\n2. 输出 4—6 句连贯英文短文，按名称用途、结构、适用条件顺序组织已知内容。每句配中文，并在 articleKnowledgePointIds 对应位置列出知识点 ID。knowledgeNotePointIds 仅填写说明正文中明确解释的知识点。\n3. 输出 4 轮不重复的关联客户问答；每轮含问题/中文、回答/中文、同意图不同问法/中文、回答要点、知识点 ID、必要情景条件。\n4. 问答按解释、确认、澄清和下一步组织，只引用短文或知识说明已经讲过的知识点。保留原文数字、单位、型号、限制条件，假设情景须明确标注。\n5. 不同问法若改变意图或范围，写入 variants[].answer 对应回答，不能共用不适用答案。\n6. 只有问题、没有答案依据时保留问题，设置 missingBasis=true，并加入 unresolvedTechnicalIssues，不生成确定答案。\n7. 资料不足时保留 gaps，输出不完整草稿，不凑句数或问答数。\n8. 保留 sourceAnalysis；其中 potentialConflicts 未经来源或人工确认，不得自行选择一个参数当作通用结论。\n9. 仅返回一个 JSON 对象，schema 必须是 ${SCHEMA}；保留已有 id、sourceIds、sourceSnapshot。\n\n字段结构示例：\n${JSON.stringify({...course,knowledgePoints:[{id:"kp-1",title:"知识点",summary:"仅写已确认事实",sourceIds:course.sourceIds.slice(0,1),conditions:"适用条件",evidence:[{sourceId:course.sourceIds[0]||"source-1",quote:"逐字引用原文"}],unresolved:false}],article:{en:["Sentence one."],zh:["第一句。"]},articleKnowledgePointIds:[["kp-1"]],knowledgeNotePointIds:[],coreTerms:[{en:"term",zh:"术语"}],expressions:[{en:"useful expression",zh:"常用表达"}],freeTalkPrompts:["中文脱稿提示"],qa:[{id:`${course.id}-qa-1`,question:{en:"Customer question?",zh:"客户问题？"},variants:[{en:"Natural alternative?",zh:"自然问法？"}],answer:{en:["Reference answer."],zh:["参考回答。"]},answerPoints:["回答要点"],knowledgePointIds:["kp-1"],conditions:"情景条件",missingBasis:false}],gaps:course.gaps.filter(item=>item!=="尚未生成完整课程内容"),unresolvedTechnicalIssues:course.unresolvedTechnicalIssues},null,2)}\n\n资料质量分析：\n${JSON.stringify(course.sourceAnalysis,null,2)}\n\n原始资料包：\n${JSON.stringify(course.sourceSnapshot,null,2)}`;
   }
   function parse(text){
     const value=clean(text);if(!value)throw new Error("请粘贴或导入课程草稿");let raw=value;
@@ -95,6 +177,7 @@
     const qaIds=course.qa.map(item=>item.id);if(qaIds.length!==new Set(qaIds).size)errors.push("问答 ID 重复");if(complete&&course.qa.length!==4)errors.push("完整课程必须包含 4 轮问答");
     course.qa.forEach((item,index)=>{if(!item.question.en||!item.question.zh)errors.push(`第 ${index+1} 轮缺少中英客户问题`);if(!item.missingBasis&&(!item.answer.en.length||item.answer.en.length!==item.answer.zh.length))errors.push(`第 ${index+1} 轮参考回答中英文不完整`);if(item.missingBasis)errors.push(`第 ${index+1} 轮缺少产品知识依据，不能正式入课`);if(!item.variants.length)errors.push(`第 ${index+1} 轮缺少同一意图的自然问法`);item.variants.forEach((variant,vIndex)=>{if(!variant.en||!variant.zh)errors.push(`第 ${index+1} 轮第 ${vIndex+1} 个不同问法缺少中英内容`);if(variant.answer&&(!variant.answer.en.length||variant.answer.en.length!==variant.answer.zh.length))errors.push(`第 ${index+1} 轮第 ${vIndex+1} 个对应回答中英文不完整`);});if(!item.answerPoints.length)errors.push(`第 ${index+1} 轮缺少回答要点`);if(!item.conditions)warnings.push(`第 ${index+1} 轮未填写情景条件`);if(!item.knowledgePointIds.length)errors.push(`第 ${index+1} 轮未关联知识点`);item.knowledgePointIds.filter(id=>!kpSet.has(id)).forEach(id=>errors.push(`第 ${index+1} 轮引用了不存在的知识点 ${id}`));});
     if(complete&&(course.gaps.length||course.unresolvedTechnicalIssues.length||course.knowledgePoints.some(item=>item.unresolved)))errors.push("仍有待确认技术内容或课程缺口，解决或移除后才能正式入课");
+    validateEvidence(course,complete?errors:warnings);
     if(!course.sourceIds.length)warnings.push("课程未关联原始资料");return{course,errors:[...new Set(errors)],warnings:[...new Set(warnings)],valid:errors.length===0};
   }
   function diffCourse(existing,incoming){
@@ -102,12 +185,12 @@
     const before=normalizeCourse(existing),after=normalizeCourse(incoming);
     const fields=[
       ["productId","产品系列",true],["title","课程主题",false],["primaryChapterId","主要章节",true],["relatedChapterIds","关联章节",true],["level","难度",false],
-      ["knowledgePoints","知识点",true],["article","产品短文",true],["coreTerms","核心术语",false],["expressions","常用表达",false],["knowledgeNote","产品知识说明",true],
+      ["knowledgePoints","知识点",true],["article","产品短文",true],["articleKnowledgePointIds","短文知识点关联",true],["coreTerms","核心术语",false],["expressions","常用表达",false],["knowledgeNote","产品知识说明",true],["knowledgeNotePointIds","知识说明关联",true],
       ["freeTalkPrompts","脱稿提示",false],["qa","客户问答",true],["sourceIds","来源关联",false],["sourceSnapshot","来源快照",false],["sourceAnalysis","资料质量分析",true],["gaps","课程缺口",true],["unresolvedTechnicalIssues","待核实技术内容",true]
     ];
     const changedFields=fields.filter(([field])=>JSON.stringify(before[field])!==JSON.stringify(after[field])).map(([field,label,significant])=>({field,label,significant}));
     return{isNew:false,changed:changedFields.length>0,significant:changedFields.some(item=>item.significant),changedFields};
   }
-  const api={SCHEMA,CONTENT_TYPES,classifySource,analyzeSources,buildPackage,promptFor,parse,normalizeCourse,validate,diffCourse,emptyCourse,stable};
+  const api={SCHEMA,CONTENT_TYPES,classifySource,analyzeSources,buildPackage,promptFor,parse,normalizeCourse,validate,diffCourse,usePreparedSources,emptyCourse,stable};
   root.TradeTalkCourseBuilder=api;if(typeof module!=="undefined"&&module.exports)module.exports=api;
 })(typeof window!=="undefined"?window:globalThis);
