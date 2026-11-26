@@ -754,11 +754,20 @@
   }
   function safeUrl(value) { try { const url=new URL(value);return /^https?:$/.test(url.protocol)?url.href:""; } catch (_) { return ""; } }
   function commitKnowledge(items) {
-    const clean=items.filter(item=>item?.title&&item?.content).slice(0,100).map(item=>({id:item.id||uid(),library:item.library||"product",title:String(item.title).trim().slice(0,180),content:String(item.content).trim().slice(0,20000),sourceUrl:safeUrl(item.sourceUrl),tags:Array.isArray(item.tags)?item.tags.slice(0,20):[],addedAt:item.addedAt||new Date().toISOString(),origin:item.origin||"import",meta:item.meta||{},status:item.status||"pending",extracted:item.extracted||[],addedPhraseIds:item.addedPhraseIds||[],courseAssignments:uniqueCourseAssignments(item.courseAssignments)}));
-    state.knowledgeItems=[...clean,...state.knowledgeItems].slice(0,300);save();renderSources();return clean.length;
+    const clean=items.filter(item=>String(item?.content||"").trim()).map(item=>({id:item.id||uid(),library:item.library||"product",title:String(item.title||"未命名资料").trim().slice(0,180),content:String(item.content).trim(),sourceUrl:safeUrl(item.sourceUrl),tags:Array.isArray(item.tags)?item.tags.slice(0,20):[],addedAt:item.addedAt||new Date().toISOString(),origin:item.origin||"import",meta:item.meta||{},status:item.status||"pending",extracted:item.extracted||[],addedPhraseIds:item.addedPhraseIds||[],courseAssignments:uniqueCourseAssignments(item.courseAssignments)}));
+    if(!clean.length)return 0;
+    const knowledgeItems=[...clean,...state.knowledgeItems];
+    try{localStorage.setItem(KEY,JSON.stringify({...state,knowledgeItems}));}catch(_){toast("本机储存不足，资料未导入。");return 0;}
+    state.knowledgeItems=knowledgeItems;save();renderSources();return clean.length;
   }
   function collectBatchMaterials() {
-    const input=$("batchSourceInput");const text=input.value.trim();const status=$("batchCollectStatus");if(!text){status.textContent="请先粘贴至少一组资料。";input.focus();return;}const blocks=text.split(/\n\s*\n/).map(block=>block.trim()).filter(Boolean).slice(0,50);const library=$("batchLibrary").value;const items=blocks.map((content,index)=>{const scene=content.match(/^\s*(?:场景|scene)\s*[:：]\s*(.+)$/im)?.[1]?.trim();const english=content.match(/^\s*(?:英文|english|en)\s*[:：]\s*(.+)$/im)?.[1]?.trim();return{library,title:(scene||english||`批量资料 ${index+1}`).slice(0,180),content,sourceUrl:"",origin:"batch-paste"};});const count=commitKnowledge(items);input.value="";status.textContent=`已采集 ${count} 组资料，等待审核。`;toast(`已批量采集 ${count} 组资料`);
+    const input=$("batchSourceInput"),status=$("batchCollectStatus");
+    try{
+      const items=parseMaterialInput(input.value,"txt",$("batchLibrary").value,"","batch-paste");
+      const count=saveMaterialBatch(items,$("batchLibrary").value);
+      input.value="";
+      status.textContent=`已导入 ${count} 条资料。已勾选新资料，可直接批量识别中文。`;
+    }catch(error){status.textContent=error.message;input.focus();}
   }
   function chapterForTopic(topic) {
     return ({shower:"shower",floor:"floor",door:"door",spigot:"spigot",standoff:"standoff",sliding:"sliding",finish:"material"})[topic]||topic;
@@ -802,7 +811,7 @@
     return String(value || "").trim().replace(/^\s*(?:>|[-*+]\s+|\d+[.)、]\s*)/,"").replace(/^#{1,6}\s*/,"").replace(/[＊*]{2}|_{2}|`/g,"").trim();
   }
   function materialField(value,type) {
-    const labels=type==="en"?"english|eng|en|英文|英语|英文表达|英文短语|客户英文":"chinese|cn|zh|中文|汉语|中文释义|中文翻译|译文|翻译|释义";
+    const labels=type==="en"?"english|eng|en|英文|英语|英文表达|英文短语|客户英文|术语英文":"chinese|cn|zh|zh-cn|中文|汉语|中文释义|中文翻译|中文含义|中文解释|译文|翻译|释义";
     const match=normalizeMaterialLine(value).match(new RegExp(`^(?:${labels})\\s*[:：]\\s*(.*)$`,"i"));
     return match?match[1].trim():null;
   }
@@ -810,7 +819,7 @@
   function cleanCandidateText(value) { return normalizeMaterialLine(value).replace(/^\s*(?:english|eng|en|英文|英语|英文表达|英文短语|客户英文|chinese|cn|zh|中文|汉语|中文释义|中文翻译|译文|翻译|释义)\s*[:：]\s*/i,"").replace(/^[\s\-•\d.)、]+/,"").replace(/^["“']|["”']$/g,"").trim().slice(0,500); }
   function extractKnowledgeCandidates(item) {
     const candidates=[];const seen=new Set();
-    const add=(en,zh,scene=inferScene(`${item.title} ${item.content}`))=>{en=cleanCandidateText(en);zh=cleanCandidateText(zh);const key=normalize(en);if(!en||seen.has(key)||candidates.length>=12)return;seen.add(key);candidates.push({selected:true,en,zh,scene});};
+    const add=(en,zh,scene=inferScene(`${item.title} ${item.content}`))=>{en=cleanCandidateText(en);zh=cleanCandidateText(zh);const key=normalize(en);if(!/[a-z]/i.test(en)||/\p{Script=Han}/u.test(en)||seen.has(key)||candidates.length>=12)return;seen.add(key);candidates.push({selected:true,en,zh,scene});};
     const lines=String(item.content||"").split(/\r?\n/).map(normalizeMaterialLine).filter(Boolean);
     for(let i=0;i<lines.length&&candidates.length<12;i+=1){
       const line=lines[i];
@@ -821,10 +830,12 @@
       const pair=line.split(/\s*(?:\||｜|\t|=>|→)\s*/).map(value=>value.trim()).filter(Boolean);
       if(pair.length>=2&&/^(?:english|英文|en)$/i.test(pair[0])&&/^(?:chinese|中文|zh|cn)$/i.test(pair[1]))continue;
       if(pair.length>=2&&/[a-z]/i.test(pair[0])&&/[\u3400-\u9fff]/.test(pair.slice(1).join(" "))){add(pair[0],pair.slice(1).join(" "));continue;}
-      const nextLine=lines[i+1]||"";const rawEnglish=cleanCandidateText(line);const adjacentChinese=materialField(nextLine,"zh")??((/[\u3400-\u9fff]/.test(nextLine)&&!/[A-Za-z]{3,}/.test(nextLine))?nextLine:null);
-      if(adjacentChinese!==null&&/[A-Za-z]/.test(rawEnglish)&&!/[\u3400-\u9fff]/.test(rawEnglish)&&rawEnglish.split(/\s+/).length>=2){add(rawEnglish,adjacentChinese,materialScene(lines[i-1])||inferScene(`${item.title} ${item.content}`));i+=1;continue;}
+      if(materialField(line,"zh")!==null)continue;
+      const nextLine=lines[i+1]||"",rawEnglish=cleanCandidateText(line);
+      const adjacentChinese=materialField(nextLine,"zh")??(/^\p{Script=Han}/u.test(nextLine)&&!/[：:]/.test(nextLine)?nextLine:null);
+      if(adjacentChinese!==null&&/^[A-Za-z][^:：]*$/.test(rawEnglish)&&!/\p{Script=Han}/u.test(rawEnglish)){add(rawEnglish,adjacentChinese,materialScene(lines[i-1])||inferScene(`${item.title} ${item.content}`));i+=1;continue;}
       const quoted=[...line.matchAll(/["“]([^"”]*[A-Za-z][^"”]*)["”]/g)];
-      if(quoted.length){const context=(line.match(/[\u3400-\u9fff][^"“”]*/)?.[0]||"").replace(/[，,、;；：:]\s*$/,"").trim();quoted.forEach(match=>{const sentences=match[1].match(/[^.!?]+[.!?]+|[^.!?]+$/g)||[];sentences.map(sentence=>sentence.trim()).filter(sentence=>sentence.split(/\s+/).length>=3).forEach(sentence=>add(sentence,context?`场景提示：${context}`:""));});continue;}
+      if(quoted.length){quoted.forEach(match=>{const sentences=match[1].match(/[^.!?]+[.!?]+|[^.!?]+$/g)||[];sentences.map(sentence=>sentence.trim()).filter(sentence=>sentence.split(/\s+/).length>=3).forEach(sentence=>add(sentence,""));});continue;}
       const bilingual=line.match(/^(.{3,300}?[.!?])\s*[-—–]\s*([\u3400-\u9fff].{1,300})$/);
       if(bilingual){add(bilingual[1],bilingual[2]);continue;}
       const english=line.match(/(?:^|[•\-]\s*)((?:[A-Z][A-Za-z'/-]*|[a-z][A-Za-z'/-]*)(?:\s+[A-Za-z0-9'(),.%/+\-]+){2,19}[.!?]?)(?:$|\s{2,})/);
@@ -891,15 +902,29 @@
   function bulkReviewKnowledge() {
     const items=state.knowledgeItems.filter(item=>selectedKnowledgeIds.has(item.id)&&item.status!=="approved");if(!items.length)return;const automatic=$("bulkAutoTargets").checked;const shared=assignmentsFromKeys(bulkCourseAssignmentKeys);if(!automatic&&!shared.length){toast("请启用自动推荐，或至少选择一个目标课程章节");$("bulkCoursePicker").open=true;return;}let expressionCount=0;let missingCount=0;let targetCount=0;items.forEach(item=>{const candidates=(item.extracted?.length?item.extracted:extractKnowledgeCandidates(item)).filter(candidate=>candidate.selected!==false&&String(candidate.en||"").trim());expressionCount+=candidates.length;missingCount+=candidates.filter(candidate=>!String(candidate.zh||"").trim()).length;targetCount+=uniqueCourseAssignments([...(automatic?recommendCourseAssignments(item):[]),...shared]).length;});const duplicateCount=items.flatMap(item=>(item.extracted?.length?item.extracted:extractKnowledgeCandidates(item))).filter((candidate,index,list)=>candidate.en&&list.findIndex(entry=>normalize(entry.en)===normalize(candidate.en))<index).length;const preview=`批量生成预览\n\n资料：${items.length} 条\n候选表达：${expressionCount} 条\n目标章节关联：${targetCount} 个\n重复表达：${duplicateCount} 条（按资料保留，课程中按表达 ID 去重）\n缺少中文：${missingCount} 条\n\n缺少中文的资料将保留在待审核区，其余资料立即生成课程。`;if(!confirm(preview))return;let approved=0;let skipped=0;items.forEach(item=>{const refreshed=refreshBilingualCandidates(item);const candidates=(refreshed.candidates.length?refreshed.candidates:extractKnowledgeCandidates(item));const selected=candidates.filter(candidate=>candidate.selected!==false&&String(candidate.en||"").trim());item.extracted=candidates;item.reviewConfirmedAt=item.reviewConfirmedAt||new Date().toISOString();const assignments=uniqueCourseAssignments([...(automatic?recommendCourseAssignments(item):[]),...shared]);if(!selected.length||selected.some(candidate=>!String(candidate.zh||"").trim())||!assignments.length){item.status="extracted";skipped+=1;return;}storeApprovedCandidates(item,selected,assignments,item.reviewLevel||state.settings.level||"A2");selectedKnowledgeIds.delete(item.id);approved+=1;});save();renderSources();renderCourses();$("bulkChineseStatus").textContent=`批量生成完成：${approved} 条资料已入课${skipped?`；${skipped} 条仍需补充或审核`:""}。`;toast(`已批量生成 ${approved} 条资料课程${skipped?`，${skipped} 条待处理`:""}`);
   }
-  async function bulkRecognizeChinese() {
-    const items=state.knowledgeItems.filter(item=>selectedKnowledgeIds.has(item.id)&&item.status!=="approved");const status=$("bulkChineseStatus");const button=$("bulkRecognizeChinese");
-    if(!items.length){toast("请选择尚未加入课程的资料");return;}if(!confirm(`确定批量识别 ${items.length} 条资料中的中文吗？原文没有中文的表达将使用免费翻译补齐。`))return;
-    button.disabled=true;button.textContent="正在识别…";status.textContent=`正在重新分析 ${items.length} 条资料…`;
-    let pairedFromSource=0;const missing=[];
-    items.forEach(item=>{const cached=new Map((item.extracted||[]).filter(candidate=>candidate.en).map(candidate=>[normalize(candidate.en),candidate]));const parsed=extractKnowledgeCandidates(item).map(candidate=>{const previous=cached.get(normalize(candidate.en));if(previous?.zh&&!candidate.zh)return{...candidate,zh:previous.zh,scene:previous.scene||candidate.scene,selected:previous.selected!==false};return candidate;});item.extracted=parsed;item.status="extracted";item.reviewConfirmedAt=item.reviewConfirmedAt||new Date().toISOString();item.meta={...(item.meta||{}),bilingualParserVersion:2};parsed.forEach(candidate=>{if(!candidate.en)return;if(candidate.zh)pairedFromSource+=1;else if(candidate.selected!==false)missing.push({item,candidate});});});
-    let translated=0;let failed=0;
-    for(let offset=0;offset<missing.length;offset+=12){const batch=missing.slice(offset,offset+12);status.textContent=`已从原文识别 ${pairedFromSource} 条；正在翻译缺失项 ${Math.min(offset+12,missing.length)}/${missing.length}…`;try{const translations=await translateTexts(batch.map(entry=>entry.candidate.en));batch.forEach((entry,index)=>{if(translations[index]){entry.candidate.zh=translations[index];translated+=1;}else failed+=1;});}catch(_){failed+=batch.length;}}
-    save();renderSources();button.textContent="批量识别中文";button.disabled=false;status.textContent=`完成：原文配对 ${pairedFromSource} 条，免费翻译 ${translated} 条${failed?`，${failed} 条仍需核对`:""}。`;toast(`批量中文识别完成：${pairedFromSource+translated} 条`);
+  function bulkRecognizeChinese() {
+    const items=state.knowledgeItems.filter(item=>selectedKnowledgeIds.has(item.id)&&item.status!=="approved");
+    if(!items.length){toast("请选择待审核资料");return;}
+    let paired=0,missing=0,chineseOnly=0;
+    for(const item of items){
+      const candidates=(item.extracted||[]).map(candidate=>({...candidate}));
+      const byEnglish=new Map(candidates.filter(candidate=>candidate.en).map(candidate=>[normalize(candidate.en),candidate]));
+      for(const candidate of extractKnowledgeCandidates(item)){
+        if(!candidate.en)continue;
+        const existing=byEnglish.get(normalize(candidate.en));
+        if(existing){if(!existing.zh)existing.zh=candidate.zh;}
+        else{candidates.push(candidate);byEnglish.set(normalize(candidate.en),candidate);}
+      }
+      item.extracted=candidates.filter(candidate=>candidate.en||candidate.zh);
+      if(item.extracted.length)item.status="extracted";
+      for(const candidate of item.extracted){
+        if(candidate.en&&candidate.zh)paired++;
+        else if(candidate.en)missing++;
+      }
+      if(!item.extracted.some(candidate=>candidate.en)&&/\p{Script=Han}/u.test(item.content))chineseOnly++;
+    }
+    save();renderSources();
+    $("bulkChineseStatus").textContent=`已识别 ${paired} 条中英配对，${chineseOnly} 条中文资料已保留原文，${missing} 条英文缺少中文。缺少译文时，可在单条审核中翻译或手动补充。`;
   }
   function generateCourseFromKnowledge() {
     const item=state.knowledgeItems.find(entry=>entry.id===reviewedKnowledgeId);if(!item)return;if(item.status!=="approved"){approveKnowledge();return;}const target=uniqueCourseAssignments(item.courseAssignments)[0];$("reviewDialog").close();if(target?.track==="roleplay")route(`roleplay/${target.chapter}`);else if(target)route(`industry/${target.chapter}/${target.unit}`);else route(`industry/${chapterForTopic(item.reviewTopic||inferTopic(`${item.title} ${item.content}`))}`);toast(target?`已打开「${courseAssignmentLabel(target)}」`:"已打开所属课程");
@@ -907,22 +932,98 @@
   function parseCsv(text) {
     const rows=[];let row=[];let cell="";let quoted=false;
     for(let i=0;i<text.length;i+=1){const char=text[i];if(char==='"'){if(quoted&&text[i+1]==='"'){cell+='"';i+=1;}else quoted=!quoted;}else if(char===","&&!quoted){row.push(cell.trim());cell="";}else if((char==="\n"||char==="\r")&&!quoted){if(char==="\r"&&text[i+1]==="\n")i+=1;row.push(cell.trim());if(row.some(Boolean))rows.push(row);row=[];cell="";}else cell+=char;}
+    if(quoted)throw new Error("CSV 有未闭合的引号。");
     row.push(cell.trim());if(row.some(Boolean))rows.push(row);return rows;
   }
   function objectItem(value,library,sourceUrl,index=0) {
-    const object=value&&typeof value==="object"?value:{text:String(value||"")};const entries=Object.entries(object).filter(([,v])=>v!==null&&v!==undefined&&typeof v!=="object");const find=(...names)=>entries.find(([key])=>names.includes(key.toLowerCase()))?.[1];
-    const title=find("title","name","term","english","en","product","scene","主题","标题","英文")||entries[0]?.[1]||`导入资料 ${index+1}`;const link=find("sourceurl","source","url","link","来源");
-    return {library,title,content:entries.map(([key,val])=>`${key}: ${val}`).join("\n"),sourceUrl:safeUrl(link)||sourceUrl,origin:"file-import"};
+    if(typeof value==="string")return {library,title:value.split(/\r?\n/)[0],content:value,sourceUrl,origin:"file-import"};
+    if(!value||typeof value!=="object"||Array.isArray(value))throw new Error("每条资料应为文字或对象。");
+    const entries=Object.entries(value).filter(([,v])=>typeof v==="string"||typeof v==="number");
+    const find=(...names)=>entries.find(([key])=>names.includes(key.trim().toLowerCase()))?.[1];
+    const en=entries.find(([key])=>materialField(key.trim()+":","en")!==null)?.[1]??find("term","phrase","expression","术语","短语");
+    const zh=entries.find(([key])=>materialField(key.trim()+":","zh")!==null)?.[1]??find("translation","meaning","definition");
+    const title=find("title","name","product","scene","主题","标题")||en||zh||"导入资料 "+(index+1);
+    const link=find("sourceurl","source_url","source","url","link","来源");
+    const body=find("content","text","body","正文","原文","内容","产品知识");
+    const content=[en&&"英文："+en,zh&&"中文："+zh,body,...entries.filter(([key,val])=>![en,zh,body,title,link].includes(val)).map(([key,val])=>key+": "+val)].filter(Boolean).join("\n");
+    return {library,title,content:content||entries.map(([,v])=>v).join("\n"),sourceUrl:safeUrl(link)||sourceUrl,origin:"file-import"};
   }
-  async function importMaterialFile(file) {
-    if(!file)return;if(file.size>1000000){toast("文件超过 1 MB，请拆分后导入");return;}
-    const library=$("importLibrary").value;const sourceUrl=safeUrl($("importSourceUrl").value);const text=await file.text();let items=[];
+  function parseMaterialInput(text,format,library,sourceUrl="",origin="file-import"){
+    text=text.replace(/^\uFEFF/,"").trim();
+    if(!text)throw new Error("请提供至少一条资料。");
+    let items;
+    if(format==="json"||/^[{\[]/.test(text)&&origin==="batch-paste"){
+      const data=JSON.parse(text);
+      if(typeof data?.schema==="string"&&data.schema.startsWith("tradetalk."))throw new Error("请使用对应的课程、问答或学习备份导入入口。");
+      const rows=Array.isArray(data)?data:data?.items??data?.data??[data];
+      if(!Array.isArray(rows))throw new Error("JSON 资料列表必须是数组。");
+      items=rows.map((row,index)=>objectItem(row,library,sourceUrl,index));
+    }else if(format==="csv"){
+      const rows=parseCsv(text);
+      const first=rows[0]||[];
+      const header=first.some(key=>materialField(key+":","en")!==null||materialField(key+":","zh")!==null||/^(title|content|text|term|phrase|translation|meaning|标题|内容|正文|术语|短语)$/i.test(key));
+      const keys=header?rows.shift():["英文","中文","场景","来源"];
+      items=rows.map((row,index)=>objectItem(Object.fromEntries(row.map((value,column)=>[keys[column]||"字段 "+(column+1),value])),library,sourceUrl,index));
+    }else{
+      const blocks=text.split(/\r?\n[ \t]*\r?\n+/).flatMap(block=>{
+        const lines=block.split(/\r?\n/).filter(line=>line.trim());
+        const isHeading=line=>/(?:英文|English)\s*[|｜\t]\s*(?:中文|Chinese)/i.test(line);
+        const isRule=line=>/^[\s|:|-]+$/.test(line);
+        if(lines.every(line=>isHeading(line)||isRule(line)||/[A-Za-z].*(?:\t|[|｜]|=>|→).*\p{Script=Han}/u.test(line))){
+          return lines.filter(line=>!isHeading(line)&&!isRule(line));
+        }
+        const groups=[];let current=[],hasEnglish=false,hasScene=false;
+        for(const line of lines){
+          const isEnglish=materialField(line,"en")!==null,isScene=Boolean(materialScene(line));
+          if((isEnglish&&hasEnglish)||(isScene&&(hasScene||hasEnglish))){
+            groups.push(current.join("\n"));current=[];hasEnglish=false;hasScene=false;
+          }
+          current.push(line);hasEnglish||=isEnglish;hasScene||=isScene;
+        }
+        if(current.length)groups.push(current.join("\n"));
+        return groups;
+      });
+      items=blocks.map(content=>({library,title:materialScene(content.split(/\r?\n/)[0])||normalizeMaterialLine(content.split(/\r?\n/)[0]),content,sourceUrl,origin}));
+    }
+    return items.filter(item=>item.content.trim());
+  }
+  function saveMaterialBatch(items,library){
+    if(!items.length)throw new Error("文件中没有可导入的资料。");
+    if(items.length>300)throw new Error("单次最多导入 300 条，请拆分后重试。");
+    const count=commitKnowledge(items);
+    if(!count)throw new Error("本机储存不足，资料未导入。");
+    libraryView=library;
+    $("knowledgeSearch").value="";
+    selectedKnowledgeIds.clear();
+    state.knowledgeItems.slice(0,count).forEach(item=>selectedKnowledgeIds.add(item.id));
+    renderSources();
+    return count;
+  }
+  async function importMaterialFiles(files) {
+    if(!files.length)return;
+    const status=$("materialImportStatus"),input=$("materialFile"),library=$("importLibrary").value,sourceUrl=safeUrl($("importSourceUrl").value);
+    input.disabled=true;
     try{
-      if(/\.json$/i.test(file.name)){const parsed=JSON.parse(text);const list=Array.isArray(parsed)?parsed:Array.isArray(parsed.items)?parsed.items:Array.isArray(parsed.data)?parsed.data:[parsed];items=list.slice(0,100).map((value,index)=>objectItem(value,library,sourceUrl,index));}
-      else if(/\.csv$/i.test(file.name)){const rows=parseCsv(text);const headers=rows.shift()||[];items=rows.slice(0,100).map((row,index)=>objectItem(Object.fromEntries(headers.map((header,column)=>[header||`字段${column+1}`,row[column]||""])),library,sourceUrl,index));}
-      else {items=text.split(/\n\s*\n/).filter(Boolean).slice(0,100).map((block,index)=>{const lines=block.trim().split(/\r?\n/);return{library,title:lines[0].replace(/^#+\s*/,"").slice(0,180)||`${file.name} ${index+1}`,content:block,sourceUrl,origin:"file-import"};});}
-      const count=commitKnowledge(items);toast(`已导入 ${count} 条资料，等待审核`);$("materialFile").value="";if(count)openKnowledgeReview(state.knowledgeItems[0].id);
-    }catch(_){toast("无法解析该文件，请检查格式");}
+      const items=[],errors=[];
+      for(const file of files){
+        try{
+          if(file.size>1000000)throw new Error("超过 1 MB");
+          const bytes=await file.arrayBuffer();
+          const bom=new Uint8Array(bytes,0,Math.min(2,bytes.byteLength));
+          let content;
+          if(bom[0]===0xff&&bom[1]===0xfe)content=new TextDecoder("utf-16le").decode(bytes);
+          else if(bom[0]===0xfe&&bom[1]===0xff)content=new TextDecoder("utf-16be").decode(bytes);
+          else try{content=new TextDecoder("utf-8",{fatal:true}).decode(bytes);}catch(_){content=new TextDecoder("gb18030",{fatal:true}).decode(bytes);}
+          const parsed=parseMaterialInput(content,file.name.split(".").pop().toLowerCase(),library,sourceUrl);
+          if(!parsed.length)throw new Error("没有可导入的资料");
+          items.push(...parsed);
+        }catch(error){errors.push(file.name+"："+error.message);}
+      }
+      if(!items.length)throw new Error(errors.join("；")||"没有可导入的资料。");
+      const count=saveMaterialBatch(items,library);
+      status.textContent="已导入 "+count+" 条，已勾选新资料，可批量识别中文。"+(errors.length?" 未导入："+errors.join("；"):"");
+    }catch(error){status.textContent=error.message;}
+    finally{input.value="";input.disabled=false;}
   }
   function isPrivateHost(host) { return host==="localhost"||host.endsWith(".local")||/^127\./.test(host)||/^10\./.test(host)||/^192\.168\./.test(host)||/^172\.(1[6-9]|2\d|3[01])\./.test(host); }
   async function collectWebsite() {
@@ -1068,7 +1169,7 @@
   $("speakWord").onclick = () => selectedWord && speak(selectedWord.word); $("saveWord").onclick = saveSelectedWord;
   $("openGenerator").onclick = () => { if(state.generatedCourse.topic)$("generatorTopic").value=state.generatedCourse.topic;if(state.generatedCourse.level)$("generatorLevel").value=state.generatedCourse.level;const savedItems=(state.generatedCourse.ids||[]).map(phraseById).filter(Boolean);if(savedItems.length){generatedPreviewCourse=null;renderGeneratedCourse();}else previewGeneratedCourse();$("generatorDialog").showModal(); }; $("generatorTopic").onchange=previewGeneratedCourse;$("generatorLevel").onchange=previewGeneratedCourse;$("generateCourse").onclick = generateCourse; $("startGeneratedCourse").onclick=startGeneratedCourse;
   $("sourceForm").onsubmit = event => { event.preventDefault(); const title=$("sourceName").value.trim();const content=$("sourceExcerpt").value.trim();const rawUrl=$("sourceUrl").value.trim();if(rawUrl&&!safeUrl(rawUrl)){toast("请输入有效的来源网址");return;}const count=commitKnowledge([{library:$("sourceLibrary").value,title,content,sourceUrl:rawUrl,origin:"manual"}]);event.target.reset();toast("已保存，等待审核");if(count)openKnowledgeReview(state.knowledgeItems[0].id); };
-  $("materialFile").onchange=event=>importMaterialFile(event.target.files[0]);
+  $("materialFile").onchange=event=>importMaterialFiles([...event.target.files]);
   $("qaUnitFile").onchange=event=>event.target.files[0]&&importQaUnits(event.target.files[0]);
   $("copyMaterialTemplate").onclick=async()=>{const template="场景：询盘确认\n客户问题：你们的玻璃夹适配多厚的玻璃？\n英文：Our glass clamp is suitable for 8 to 12 mm glass.\n中文：我们的玻璃夹适用于 8 至 12 毫米玻璃。\n\n场景：报价沟通\n英文：The price includes standard export packaging.\n中文：价格包含标准出口包装。";try{await navigator.clipboard.writeText(template);toast("推荐格式已复制");}catch(_){toast("浏览器不允许复制，请手动复制示例");}};
   $("batchCollect").onclick=collectBatchMaterials;
