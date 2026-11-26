@@ -1,0 +1,28 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const app = fs.readFileSync(path.join(__dirname, "../docs/public/app.js"), "utf8");
+const section = (from, to) => app.slice(app.indexOf("  function " + from), app.indexOf("  function " + to));
+const sandbox = { safeUrl: () => "", inferScene: () => "产品沟通", normalize: value => value.toLowerCase() };
+vm.runInNewContext(section("normalizeMaterialLine", "refreshBilingualCandidates") + section("parseCsv", "saveMaterialBatch") +
+  "Object.assign(globalThis,{parseMaterialInput,extractKnowledgeCandidates});", sandbox);
+const parse = (input, format = "txt") => sandbox.parseMaterialInput(input, format, "product", "", "batch-paste");
+const pairs = item => JSON.parse(JSON.stringify(sandbox.extractKnowledgeCandidates(item))).filter(row => row.en);
+const tsv = parse("英文\t中文\nHinge\t铰链\nGasket\t垫片");
+assert.equal(tsv.length, 2);
+assert.equal(pairs(tsv[0])[0].zh, "铰链");
+const marked = parse("英文：Glass hinge\n中文：玻璃铰链\n英文：Steel gasket\n中文：钢制垫片");
+assert.equal(marked.length, 2);
+assert.equal(pairs(marked[1])[0].zh, "钢制垫片");
+const csv = parse('\uFEFF术语,中文含义\n"Hinge, wall mount",墙装铰链\nGasket,垫片', "csv");
+assert.equal(csv.length, 2);
+assert.equal(pairs(csv[0])[0].zh, "墙装铰链");
+assert.equal(pairs(parse("Hinge,铰链\nGasket,垫片", "csv")[0])[0].zh, "铰链");
+const json = parse('[{"en":"Door hinge","translation":"门铰链"},{"正文":"适用范围请参考图纸。"}]', "json");
+assert.equal(pairs(json[0])[0].zh, "门铰链");
+assert.equal(json[1].content, "适用范围请参考图纸。");
+assert.equal(pairs(json[1]).length, 0);
+assert.throws(() => parse('英文,中文\n"Hinge,铰链', "csv"), /未闭合/);
+assert.throws(() => parse('{"schema":"tradetalk.qa.v1","units":[]}', "json"), /对应/);
+console.log("Material import smoke passed.");
