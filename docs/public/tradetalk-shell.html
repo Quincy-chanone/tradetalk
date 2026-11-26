@@ -182,13 +182,14 @@
         <div class="knowledge-section-heading"><div><span class="tag">COLLECT</span><h3>选择资料来源</h3></div><p>支持文件导入、批量粘贴、公开客户网站和手动记录。</p></div>
 
         <section class="material-import" aria-labelledby="materialTitle">
-          <div><span class="tag">LEARNING MATERIALS</span><h3 id="materialTitle">导入学习资料</h3></div>
+          <div><span class="tag">LEARNING MATERIALS</span><h3 id="materialTitle">批量导入文件</h3></div>
           <div class="import-row">
             <select id="importLibrary" aria-label="导入到资料库"><option value="product">产品知识库</option><option value="terms">中英术语库</option><option value="personal">个人表达库</option><option value="scenario">业务场景库</option></select>
             <input id="importSourceUrl" type="url" inputmode="url" aria-label="资料来源链接" placeholder="来源链接（可选）">
-            <label class="file-button">选择 TXT / MD / CSV / JSON<input id="materialFile" type="file" accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json"></label>
+            <label class="file-button">选择多个 TXT / MD / CSV / JSON 文件<input id="materialFile" type="file" multiple accept=".txt,.md,.csv,.json,text/plain,text/markdown,text/csv,application/json"></label>
           </div>
-          <small>单个文件不超过 1 MB；解析和保存均在本机完成。</small>
+          <small>支持 UTF-8、GB18030 和带文件头的 UTF-16。单文件最多 1 MB，单次最多 300 条。</small>
+          <p id="materialImportStatus" class="microcopy" role="status">文件解析和中文配对均可在本机完成。</p>
           <details class="format-guide"><summary>查看推荐资料格式</summary><pre>场景：询盘确认
 客户问题：你们的玻璃夹适配多厚的玻璃？
 英文：Our glass clamp is suitable for 8 to 12 mm glass.
@@ -203,12 +204,12 @@
         </section>
 
         <section class="batch-import" aria-labelledby="batchTitle">
-          <div><span class="tag">BATCH COLLECTION</span><h3 id="batchTitle">批量采集资料</h3><p>一次粘贴多组中英资料，每组之间空一行；最多保存 50 组。</p></div>
+          <div><span class="tag">BATCH COLLECTION</span><h3 id="batchTitle">批量粘贴导入</h3><p>可粘贴多组中英资料、从 Excel 复制的中英两列，或纯中文资料。多段原文之间留一空行。</p></div>
           <div class="batch-controls">
             <select id="batchLibrary" aria-label="批量保存到资料库"><option value="product">产品知识库</option><option value="terms">中英术语库</option><option value="personal">个人表达库</option><option value="scenario">业务场景库</option></select>
             <textarea id="batchSourceInput" rows="7" aria-label="批量采集内容" placeholder="场景：询盘确认&#10;英文：Our glass clamp is suitable for 8 to 12 mm glass.&#10;中文：我们的玻璃夹适用于 8 至 12 毫米玻璃。&#10;&#10;场景：报价沟通&#10;英文：The price includes standard export packaging.&#10;中文：价格包含标准出口包装。"></textarea>
-            <button id="batchCollect" class="primary" type="button">批量采集并加入待审核</button>
-            <small id="batchCollectStatus">批量采集后，可在资料列表勾选并批量审核。</small>
+            <button id="batchCollect" class="primary" type="button">批量导入并加入待审核</button>
+            <small id="batchCollectStatus" role="status">导入后会勾选新资料，可直接批量识别中文。</small>
           </div>
         </section>
 
