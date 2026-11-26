@@ -1,12 +1,13 @@
 import { h, nextTick, onMounted, ref } from "vue";
 import "./wrapper.css";
 
-const assetVersion = "2.2.0-qa2";
+const assetVersion = "2.4.9-course-evidence";
 
 const scripts = [
   "/content.js",
   "/v1-1-data.js",
   "/phonetics-data.js",
+  "/course-builder.js",
   "/vendor/easy-speech/EasySpeech.iife.js",
   "/app.js"
 ];
@@ -33,10 +34,14 @@ const Layout = {
 
     onMounted(async () => {
       try {
-        const response = await fetch(`/tradetalk-shell.html?v=${assetVersion}`, { cache: "no-store" });
-        if (!response.ok) throw new Error("课程界面载入失败");
-        const source = await response.text();
-        const documentCopy = new DOMParser().parseFromString(source, "text/html");
+        let documentCopy = null;
+        for (const url of [`/tradetalk-shell.html?v=${assetVersion}`, "/tradetalk-shell.html"]) {
+          const response = await fetch(url, { cache: "no-store" });
+          if (!response.ok) continue;
+          const candidate = new DOMParser().parseFromString(await response.text(), "text/html");
+          if (candidate.querySelector("#today") && candidate.querySelector("#courseBuilderDialog")) { documentCopy = candidate; break; }
+        }
+        if (!documentCopy) throw new Error("课程界面载入失败或版本不匹配");
         documentCopy.querySelectorAll("script").forEach(node => node.remove());
         shell.value = documentCopy.body.innerHTML;
         await nextTick();

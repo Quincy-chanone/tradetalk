@@ -102,6 +102,23 @@ async function wordInfoRequest(request) {
   try{const dictionaryUrl=new URL("https://api.datamuse.com/words");dictionaryUrl.searchParams.set("sp",word);dictionaryUrl.searchParams.set("md","prd");dictionaryUrl.searchParams.set("max","1");const [dictionaryResult,meaningResult]=await Promise.allSettled([fetch(dictionaryUrl,{headers:{Accept:"application/json"}}).then(response=>response.ok?response.json():[]),freeTranslate(word)]);const dictionary=dictionaryResult.status==="fulfilled"?dictionaryResult.value:[];const entry=Array.isArray(dictionary)?dictionary.find(item=>String(item.word).toLowerCase()===word)||dictionary[0]:null;const pronunciation=entry?.tags?.find(tag=>tag.startsWith("pron:"))?.slice(5)||"";const definition=String(entry?.defs?.[0]||"").replace(/^[a-z]+\s*\t/i,"").trim();const meaning=meaningResult.status==="fulfilled"?meaningResult.value:"";if(!meaning&&!definition&&!pronunciation)throw new Error("未查询到该单词");return json({word,ipa:arpabetToIpa(pronunciation),meaning,definition});}catch(error){return json({error:error?.message||"词典服务暂时不可用"},502);}
 }
 
+async function courseDraftRequest(request, env) {
+  if(request.method!=="POST")return json({error:"仅支持 POST 请求"},405);
+  if(!sameOrigin(request))return json({error:"仅允许本站发起课程生成"},403);
+  if(!env.OPENAI_API_KEY)return json({error:"服务端未配置 OPENAI_API_KEY；请使用免费的复制生成路径",configured:false},503);
+  const length=Number(request.headers.get("content-length")||0);if(length>180000)return json({error:"课程资料包超过 180 KB，请减少单次资料量"},413);
+  let body;try{body=await request.json();}catch(_){return json({error:"请求格式无效"},400);}
+  const prompt=String(body?.prompt||"").trim();if(!prompt||prompt.length>150000)return json({error:"课程整理指令为空或过长"},400);
+  const model=String(env.OPENAI_MODEL||"gpt-5-mini");
+  try{
+    const response=await fetch("https://api.openai.com/v1/responses",{method:"POST",headers:{Authorization:`Bearer ${env.OPENAI_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model,store:false,input:[{role:"developer",content:[{type:"input_text",text:"Return only one valid JSON object matching the schema in the user prompt. Never invent product parameters, certifications, performance, or compatibility."}]},{role:"user",content:[{type:"input_text",text:prompt}]}]})});
+    const data=await response.json().catch(()=>({}));if(!response.ok)return json({error:data?.error?.message||`OpenAI API 返回 HTTP ${response.status}`,configured:true},502);
+    const outputText=String(data.output_text||data.output?.flatMap(item=>item.content||[]).find(item=>item.type==="output_text")?.text||"").trim();if(!outputText)throw new Error("AI 未返回课程草稿");
+    const fenced=outputText.match(/```(?:json)?\s*([\s\S]*?)```/i);const raw=fenced?.[1]||outputText;const start=raw.indexOf("{"),end=raw.lastIndexOf("}");if(start<0||end<=start)throw new Error("AI 返回内容不含 JSON 对象");
+    return json({configured:true,model,draft:JSON.parse(raw.slice(start,end+1))});
+  }catch(error){return json({error:error?.message||"AI 课程生成失败",configured:true},502);}
+}
+
 async function syncRequest(request, env) {
   if (!env.SYNC_DB) return json({error:"同步数据库尚未绑定"},503);
   const code = readCode(request);
@@ -137,6 +154,8 @@ export default {
     if (url.pathname === "/api/collect-website") return collectWebsiteRequest(request);
     if (url.pathname === "/api/translate") return translateRequest(request);
     if (url.pathname === "/api/word-info") return wordInfoRequest(request);
+    if (url.pathname === "/api/course-draft") return courseDraftRequest(request,env);
     return env.ASSETS.fetch(request);
   }
 };
+

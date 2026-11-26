@@ -1,0 +1,134 @@
+{
+  "schema": "tradetalk.daily.v2",
+  "lessons": [
+    {
+      "id": "daily-spigot-system-001",
+      "productId": "spigot",
+      "productName": "Balustrade Posts & Spigots",
+      "title": "Introducing a Stainless Steel Railing Post",
+      "courseId": "industry/spigot/application",
+      "knowledgePoints": ["产品名称与用途", "立柱与玻璃夹的关系", "选型所需资料"],
+      "keywords": ["railing post", "glass clamp", "layout drawing", "handrail"],
+      "article": {
+        "en": [
+          "This is a stainless steel railing post for a glass balustrade system.",
+          "It supports the glass panels and can also connect to a handrail.",
+          "Glass clamps and handrail connectors are selected to match the system design.",
+          "End, middle, and corner posts are used at different positions in the layout.",
+          "Please share the layout drawing and glass details so we can confirm the configuration."
+        ],
+        "zh": [
+          "这是一款用于玻璃栏杆系统的不锈钢栏杆立柱。",
+          "它支撑玻璃面板，也可以连接扶手。",
+          "玻璃夹和扶手连接件需根据系统设计进行选配。",
+          "端柱、中间柱和转角柱用于布局中的不同位置。",
+          "请提供布局图和玻璃资料，以便我们确认配置。"
+        ]
+      },
+      "knowledgeNote": "本课只介绍系统关系和确认流程。材质牌号、尺寸、承重、孔位及认证均须按实际项目资料确认。",
+      "qa": [
+        {"id":"daily-spigot-system-001-q1","courseId":"industry/spigot/application","knowledgePoint":"产品名称与用途","question":{"en":"What is this product used for?","zh":"这个产品有什么用途？"},"answer":{"en":["It is a stainless steel railing post used to support a glass balustrade system."],"zh":["这是一款用于支撑玻璃栏杆系统的不锈钢栏杆立柱。"]}},
+        {"id":"daily-spigot-system-001-q2","courseId":"industry/spigot/installation","knowledgePoint":"玻璃夹配件关系","question":{"en":"How do the glass clamps work with the post?","zh":"玻璃夹如何与立柱配合？"},"answer":{"en":["The clamps are fitted at the required positions on the post to hold the glass panels.","We need the glass details and layout to confirm the clamp type and position."],"zh":["玻璃夹安装在立柱所需位置，用于固定玻璃面板。","我们需要玻璃资料和布局图来确认夹具类型及位置。"]}},
+        {"id":"daily-spigot-system-001-q3","courseId":"industry/spigot/specifications","knowledgePoint":"立柱位置选择","question":{"en":"Which post type should we use at a corner?","zh":"转角位置应使用哪种立柱？"},"answer":{"en":["A corner post is normally used where the railing changes direction.","Please send the layout so we can confirm the exact arrangement."],"zh":["栏杆改变方向的位置通常使用转角柱。","请提供布局图，以便我们确认具体配置。"]}},
+        {"id":"daily-spigot-system-001-q4","courseId":"industry/spigot/specifications","knowledgePoint":"推进下一步确认","question":{"en":"What information do you need to confirm the configuration?","zh":"确认配置需要哪些资料？"},"answer":{"en":["Please send the layout drawing, glass details, fixing surface, and handrail requirement.","Then we can check the post positions and matching accessories."],"zh":["请提供布局图、玻璃资料、安装基面和扶手需求。","之后我们可以核对立柱位置和配套附件。"]}}
+      ]
+    },
+    {
+      "id": "daily-shower-hinge-001",
+      "productId": "shower",
+      "productName": "Shower Hinges",
+      "title": "Explaining a Shower Hinge",
+      "courseId": "industry/shower/application",
+      "knowledgePoints": ["产品用途", "玻璃与安装方式", "选型确认"],
+      "keywords": ["shower hinge", "glass door", "opening direction", "mounting method"],
+      "article": {
+        "en": [
+          "A shower hinge connects a glass door to a wall or another glass panel.",
+          "It allows the door to open and close while supporting the selected door configuration.",
+          "The hinge type must match the glass arrangement and opening direction.",
+          "The required cut-outs and fixing method depend on the selected model.",
+          "Please send the door drawing and glass details before we recommend a hinge."
+        ],
+        "zh": [
+          "淋浴房铰链将玻璃门连接到墙体或另一块玻璃。",
+          "它使门能够开合，并适配所选的门体配置。",
+          "铰链类型必须匹配玻璃布局和开启方向。",
+          "所需开孔和固定方式取决于所选型号。",
+          "在推荐铰链前，请提供门体图纸和玻璃资料。"
+        ]
+      },
+      "knowledgeNote": "本课不承诺承重、开启角度或适配玻璃厚度；这些参数必须根据实际型号资料确认。",
+      "qa": [
+        {"id":"daily-shower-hinge-001-q1","courseId":"industry/shower/application","knowledgePoint":"产品用途","question":{"en":"What does this shower hinge connect?","zh":"这款淋浴房铰链连接什么？"},"answer":{"en":["It connects a glass door to a wall or to another glass panel, depending on the door layout."],"zh":["根据门体布局，它可将玻璃门连接到墙体或另一块玻璃。"]}},
+        {"id":"daily-shower-hinge-001-q2","courseId":"industry/shower/specifications","knowledgePoint":"开启方向确认","question":{"en":"How do we choose the opening direction?","zh":"如何选择开启方向？"},"answer":{"en":["We first confirm the door layout and the required opening direction.","Then we match them to a suitable hinge model."],"zh":["我们先确认门体布局和所需开启方向。","然后匹配合适的铰链型号。"]}},
+        {"id":"daily-shower-hinge-001-q3","courseId":"industry/shower/installation","knowledgePoint":"开孔与安装","question":{"en":"Are the glass cut-outs the same for every hinge?","zh":"每款铰链的玻璃开孔都一样吗？"},"answer":{"en":["No. The cut-outs depend on the selected hinge model.","Please use the approved drawing before processing the glass."],"zh":["不一样，开孔取决于所选铰链型号。","加工玻璃前请使用已确认的图纸。"]}},
+        {"id":"daily-shower-hinge-001-q4","courseId":"industry/shower/specifications","knowledgePoint":"推进选型","question":{"en":"What should I send you for hinge selection?","zh":"铰链选型需要我提供什么？"},"answer":{"en":["Please send the door drawing, glass details, opening direction, and mounting method.","We will check the suitable model and confirm its actual specifications."],"zh":["请提供门体图纸、玻璃资料、开启方向和安装方式。","我们会核对合适型号并确认其实际规格。"]}}
+      ]
+    },
+    {
+      "id": "daily-floor-spring-001",
+      "productId": "floor",
+      "productName": "Floor Springs",
+      "title": "Describing a Floor Spring",
+      "courseId": "industry/floor/application",
+      "knowledgePoints": ["产品结构位置", "门体条件", "调节与选型"],
+      "keywords": ["floor spring", "glass door", "door weight", "closing control"],
+      "article": {
+        "en": [
+          "A floor spring is installed below the door and controls its movement.",
+          "It is commonly used with framed or frameless glass doors in a suitable door system.",
+          "Selection depends on the door size, door weight, opening direction, and usage conditions.",
+          "The matching top and bottom fittings must work with the door configuration.",
+          "Please confirm the actual model before discussing closing settings or hold-open functions."
+        ],
+        "zh": [
+          "地弹簧安装在门下方，用于控制门的运动。",
+          "它通常用于合适门系统中的有框或无框玻璃门。",
+          "选型取决于门尺寸、门重量、开启方向和使用条件。",
+          "配套的上下门夹必须与门体配置相匹配。",
+          "讨论闭门调节或定位功能前，请先确认实际型号。"
+        ]
+      },
+      "knowledgeNote": "定位角度、承重范围和调速方式属于型号参数，不将示例条件当作实际产品参数。",
+      "qa": [
+        {"id":"daily-floor-spring-001-q1","courseId":"industry/floor/application","knowledgePoint":"产品用途","question":{"en":"Where is the floor spring installed?","zh":"地弹簧安装在哪里？"},"answer":{"en":["It is installed below the door and works with the door fittings to control movement."],"zh":["它安装在门下方，并与门夹配合控制门的运动。"]}},
+        {"id":"daily-floor-spring-001-q2","courseId":"industry/floor/specifications","knowledgePoint":"选型条件","question":{"en":"Can you select a floor spring from the door width alone?","zh":"只看门宽可以选择地弹簧吗？"},"answer":{"en":["No. We also need the door weight, height, opening direction, and usage conditions.","Please share the complete door information."],"zh":["不可以，我们还需要门重、门高、开启方向和使用条件。","请提供完整的门体信息。"]}},
+        {"id":"daily-floor-spring-001-q3","courseId":"industry/floor/installation","knowledgePoint":"配件关系","question":{"en":"Which fittings are used with the floor spring?","zh":"地弹簧与哪些配件配合使用？"},"answer":{"en":["It normally works with matching top and bottom fittings in the door system.","The exact fittings depend on the door configuration."],"zh":["它通常与门系统中配套的上下门夹一起使用。","具体配件取决于门体配置。"]}},
+        {"id":"daily-floor-spring-001-q4","courseId":"industry/floor/specifications","knowledgePoint":"澄清功能","question":{"en":"Does this model have a hold-open function?","zh":"这个型号有定位功能吗？"},"answer":{"en":["That function is model-specific, so I need to check the exact item code first.","Could you confirm the model or send the required door conditions?"],"zh":["该功能取决于具体型号，因此我需要先核对准确货号。","您能确认型号或提供所需门体条件吗？"]}}
+      ]
+    },
+    {
+      "id": "daily-sliding-system-001",
+      "productId": "sliding",
+      "productName": "Sliding Door Systems",
+      "title": "Introducing a Glass Sliding Door System",
+      "courseId": "industry/sliding/application",
+      "knowledgePoints": ["系统组成", "空间与玻璃条件", "配件匹配"],
+      "keywords": ["sliding door", "track", "roller", "soft-close unit"],
+      "article": {
+        "en": [
+          "A glass sliding door system uses a track and rollers to guide the door panel.",
+          "The system may also include stops, guides, handles, and a soft-close unit.",
+          "The track length and fitting arrangement must match the opening and available space.",
+          "Glass details and the supporting structure are important for product selection.",
+          "Please send the opening dimensions and installation drawing so we can check the complete set."
+        ],
+        "zh": [
+          "玻璃滑门系统使用轨道和滑轮引导门扇移动。",
+          "系统还可能包括限位器、导向件、拉手和缓冲器。",
+          "轨道长度和配件布置必须匹配洞口及可用空间。",
+          "玻璃资料和支撑结构对产品选型很重要。",
+          "请提供洞口尺寸和安装图，以便我们核对整套配置。"
+        ]
+      },
+      "knowledgeNote": "“可能包括”表示可选配置；缓冲、承重、轨道长度和玻璃要求必须按具体系统资料确认。",
+      "qa": [
+        {"id":"daily-sliding-system-001-q1","courseId":"industry/sliding/application","knowledgePoint":"系统组成","question":{"en":"What are the main parts of this sliding door system?","zh":"这套滑门系统的主要部件有哪些？"},"answer":{"en":["The main parts are the track and rollers.","The complete set may also include stops, guides, handles, and an optional soft-close unit."],"zh":["主要部件是轨道和滑轮。","整套配置还可能包括限位器、导向件、拉手和可选缓冲器。"]}},
+        {"id":"daily-sliding-system-001-q2","courseId":"industry/sliding/specifications","knowledgePoint":"空间确认","question":{"en":"How do you confirm the required track length?","zh":"如何确认所需轨道长度？"},"answer":{"en":["We check the opening dimensions, door travel, and available installation space.","Please send the drawing so we can confirm the length."],"zh":["我们会核对洞口尺寸、门扇行程和可用安装空间。","请提供图纸，以便确认长度。"]}},
+        {"id":"daily-sliding-system-001-q3","courseId":"industry/sliding/installation","knowledgePoint":"玻璃与结构条件","question":{"en":"What details do you need about the glass?","zh":"需要哪些玻璃资料？"},"answer":{"en":["We need the panel dimensions, glass type, and the relevant hole or edge details.","We also need to understand the supporting structure."],"zh":["我们需要门扇尺寸、玻璃类型以及相关孔位或边部资料。","我们还需要了解支撑结构。"]}},
+        {"id":"daily-sliding-system-001-q4","courseId":"industry/sliding/specifications","knowledgePoint":"可选功能澄清","question":{"en":"Is the soft-close unit included in the standard set?","zh":"标准套装包含缓冲器吗？"},"answer":{"en":["It depends on the selected system and quotation scope.","Please confirm that you need soft close, and I will check the matching set."],"zh":["这取决于所选系统和报价范围。","请确认您需要缓冲功能，我会核对配套配置。"]}}
+      ]
+    }
+  ]
+}
+
